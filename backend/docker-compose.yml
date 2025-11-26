@@ -1,0 +1,21 @@
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: alert-ci
+      POSTGRES_PASSWORD: "alert-ci123"
+      POSTGRES_DB: alert-ci
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+
+volumes:
+  data:
+
+networks:
+  app-net:
+    external: true

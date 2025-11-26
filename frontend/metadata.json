@@ -1,0 +1,5 @@
+{
+  "name": "frontend",
+  "description": "A high-performance CI/CD analytics dashboard inspired by Trunk.io, featuring real-time build monitoring, visual metrics using Recharts, and AI-powered failure analysis using the Gemini API.",
+  "requestFramePermissions": []
+}
