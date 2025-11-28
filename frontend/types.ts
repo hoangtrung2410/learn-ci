@@ -14,7 +14,7 @@ export interface Run {
   status: Status;
   duration: string;
   startedAt: string;
-  logs?: string; // Mock error logs for AI analysis
+  logs?: string; // For AI analysis
 }
 
 export interface StatMetric {
@@ -43,9 +43,10 @@ export interface User {
   email: string;
   avatar?: string;
   role: 'admin' | 'developer' | 'viewer';
+  accessToken?: string;
 }
 
-// --- New Types for Insights ---
+// --- Insights / Optimizer Types ---
 
 export interface DoraMetric {
   id: string;

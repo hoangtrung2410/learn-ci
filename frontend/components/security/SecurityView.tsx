@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
@@ -11,7 +12,7 @@ import {
   Loader2 
 } from 'lucide-react';
 import { Token } from '../../types';
-import { API_BASE_URL } from '../../constants';
+import { tokenService } from '../../services/tokenService';
 import TokenModal from './TokenModal';
 
 const SecurityView: React.FC = () => {
@@ -28,16 +29,13 @@ const SecurityView: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/tokens`);
-      if (!res.ok) throw new Error('Failed to fetch tokens from API');
-      const data = await res.json();
+      const data = await tokenService.getAll();
       setTokens(Array.isArray(data) ? data : []); 
     } catch (err) {
-      console.error(err);
-      setError('Could not connect to API. Showing cached/mock data if available.');
+      console.warn("API Error:", err);
       // Fallback for demo if API is offline
       setTokens([
-        { id: 1, name: 'DEMO_KEY (API Offline)', token: 'ghp_demo123...', created: 'Just now' }
+        { id: 'demo-1', name: 'DEMO_KEY (Backend Offline)', token: 'ghp_demo123...', created: 'Just now' }
       ]);
     } finally {
       setIsLoading(false);
@@ -51,26 +49,17 @@ const SecurityView: React.FC = () => {
   // Handle Create/Update passed to Modal
   const handleModalSubmit = async (data: { name: string; token: string }) => {
     try {
-      const url = editingToken 
-        ? `${API_BASE_URL}/tokens/${editingToken.id}` 
-        : `${API_BASE_URL}/tokens`;
-      
-      const method = editingToken ? 'PUT' : 'POST';
-      
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!res.ok) throw new Error('Operation failed');
+      if (editingToken) {
+        await tokenService.update(editingToken.id, data);
+      } else {
+        await tokenService.create(data);
+      }
       
       await fetchTokens();
       setIsModalOpen(false);
       setEditingToken(null);
-    } catch (err) {
-      alert('Failed to save token. Ensure the backend is running.');
-      console.error(err);
+    } catch (err: any) {
+      alert(`Failed to save token: ${err.message}`);
     }
   };
 
@@ -79,8 +68,7 @@ const SecurityView: React.FC = () => {
     if (!confirm('Are you sure you want to delete this token? This action cannot be undone.')) return;
     
     try {
-      const res = await fetch(`${API_BASE_URL}/tokens/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete');
+      await tokenService.delete(id);
       await fetchTokens();
     } catch (err) {
       alert('Failed to delete token');

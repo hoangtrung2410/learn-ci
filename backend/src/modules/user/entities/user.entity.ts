@@ -6,14 +6,8 @@ import { AbstractEntity } from '../../../database';
 
 @Entity({ name: 'users' })
 export class UserEntity extends AbstractEntity {
-  @Column({ nullable: false, unique: true })
+  @Column({ nullable: true })
   name: string;
-
-  @Column({ nullable: true })
-  fullName: string;
-
-  @Column({ nullable: true })
-  phone: string;
 
   @Column({ unique: true, nullable: true })
   email: string;

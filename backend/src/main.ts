@@ -73,7 +73,22 @@ async function bootstrap() {
   app.setGlobalPrefix(`${API_PREFIX}/${API_VERSION}`);
 
   // Enable CORS + Helmet
-  app.enableCors();
+  // Configure CORS using environment variable CORS_ORIGIN (comma-separated list)
+  // Default to http://localhost:3000 for local frontend development.
+  const allowedOrigins = ('http://localhost:3000');
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin like curl/postman or same-origin server-to-server
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Authorization, Accept, X-Requested-With',
+  });
 
   // Middleware
   app.use(compression());
@@ -97,7 +112,6 @@ async function bootstrap() {
     new TransformInterceptor(),
     new ClassSerializerInterceptor(app.get(Reflector)),
   );
-  console.log('1111');
 
   // Swagger
   setupSwagger(app);

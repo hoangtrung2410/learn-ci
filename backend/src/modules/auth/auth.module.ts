@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthController } from './auth.controller';
-import { OAuthController } from './oauth.controller';
+import { AuthController } from './auth.controller'; 
 import { AuthenticationService } from './authentication.service';
+import { AuthorizationService } from './authorization.service';
 import { STRATEGY_JWT_AUTH } from './constants/auth.constant';
 import { AuthFactoryHelper } from './helpers/auth-factory.helper';
 import {
@@ -18,8 +18,6 @@ import { FactoryHelper } from '../../common/helpers/factory.helper';
 import { UserModule } from '../user/user.module';
 // import { UserService } from '../user/user.service';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
-import { IamConsumer } from './iam.consumer';
-import { AuthorizationService } from './authorization.service';
 import { RoleEntity } from './entities/role.entity';
 import { PermissionEntity } from './entities/permission.entity';
 import { ModuleEntity } from './entities/module.entity';
@@ -33,7 +31,7 @@ import {
 
 @Module({
   imports: [
-    UserModule,
+  forwardRef(() => UserModule),
     PassportModule.register({
       defaultStrategy: STRATEGY_JWT_AUTH,
     }),
@@ -55,7 +53,7 @@ import {
     ]),
     DiscoveryModule,
   ],
-  controllers: [AuthController, OAuthController],
+  controllers: [AuthController],
   providers: [
     RoleRepository,
     PermissionRepository,
@@ -64,14 +62,14 @@ import {
     DiscoveryService,
     AuthFactoryHelper,
     FactoryHelper,
-    AuthenticationService,
-    AuthorizationService,
-    ConfigService,
+  AuthenticationService,
+  AuthorizationService,
+  ConfigService,
     LocalStrategy,
     JwtAuthStrategy,
     JwtRefreshStrategy,
-    IamConsumer,
+
   ],
-  exports: [AuthorizationService],
+  exports: [AuthenticationService, AuthorizationService],
 })
 export class AuthModule {}

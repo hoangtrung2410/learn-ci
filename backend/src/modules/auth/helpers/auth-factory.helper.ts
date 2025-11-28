@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import urlJoin from 'url-join';
 
@@ -53,8 +53,6 @@ export class AuthFactoryHelper extends FactoryHelper {
   }
 
   comparePassword(password: string, hash: string): boolean {
-    console.log('hash', hash);
-    console.log()
     return bcrypt.compareSync(password, hash);
   }
 

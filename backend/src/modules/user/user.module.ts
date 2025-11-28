@@ -11,6 +11,7 @@ import { UserService } from './user.service';
 import { AuthModule } from '../auth/auth.module';
 import { RoleEntity } from '../auth/entities';
 import { RedisCacheModule } from '../redis/redis.module';
+import { AuthFactoryHelper } from '../auth/helpers/auth-factory.helper';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { RedisCacheModule } from '../redis/redis.module';
     forwardRef(() => AuthModule),
   ],
   controllers: [UserController, AdminUsersController],
-  providers: [UserRepository, UserService, ConfigService, UserFactoryHelper],
+  providers: [UserRepository, UserService, ConfigService,AuthFactoryHelper, UserFactoryHelper],
   exports: [UserService, UserFactoryHelper],
 })
 export class UserModule {}

@@ -8,6 +8,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryPaginationDto, usersDto } from '../../common';
 import { RedisHealthService } from '../redis/redis.service';
 import * as bcrypt from 'bcryptjs';
+import { AuthFactoryHelper } from '../auth/helpers/auth-factory.helper';
 
 @Injectable()
 export class UserService {
@@ -17,17 +18,13 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly authorizationService: AuthorizationService,
     private readonly redisHealthService: RedisHealthService,
+    private readonly authHelper: AuthFactoryHelper,
   ) {}
 
   async createUser(id, createUserDto: CreateUserDto): Promise<UserEntity> {
     try {
-      const role = await this.authorizationService.getRole(
-        createUserDto.roleId,
-      );
-      Object.assign(createUserDto, {
-        createdBy: id,
-        role,
-      });
+     
+ 
       const password = await bcrypt.hash(createUserDto.password, 10);
       Object.assign(createUserDto, { password: password });
       const newUser = await this.userRepository.save(
@@ -41,13 +38,17 @@ export class UserService {
   }
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {
     try {
-      const role = await this.authorizationService.getRole(
-        createUserDto.roleId,
-      );
-      Object.assign(createUserDto, {
-        role,
-      });
-      const password = await bcrypt.hash(createUserDto.password, 10);
+      // DEBUG: Log incoming password info
+      console.log('=== CREATE USER DEBUG ===');
+      console.log('Incoming password type:', typeof createUserDto.password);
+      console.log('Incoming password value:', createUserDto.password);
+      console.log('Incoming password length:', createUserDto.password?.length);
+      
+      const password = this.authHelper.encryptPassword(createUserDto.password);
+      const check = this.authHelper.comparePassword(createUserDto.password, password);
+      console.log('Generated hash:', password,);
+      console.log('Password comparison result:', check);
+      console.log('=== END DEBUG ===');
       Object.assign(createUserDto, { password: password });
       const newUser = await this.userRepository.save(
         this.userRepository.create(createUserDto as unknown as UserEntity),
@@ -96,8 +97,6 @@ export class UserService {
         updatedAt: user.updatedAt,
         deletedAt: user.deletedAt,
         name: user.name,
-        fullName: user.fullName,
-        phone: user.phone,
         email: user.email,
         role: {
           id: user.role.id,
@@ -115,10 +114,10 @@ export class UserService {
     }
   }
 
-  async findOneByName(name: string): Promise<UserEntity> {
+  async findOneByEmail(email: string): Promise<UserEntity> {
     try {
       const user = await this.userRepository.findOne({
-        where: { name: name },
+        where: { email: email },
         relations: ['role'],
       });
       if (!user) throw new BadRequestException('USER::USER_NOT_EXIST');
@@ -298,21 +297,21 @@ export class UserService {
   }
 
   async updateProfile(userId: string, payload: UpdateUserDto) {
-    try {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
-      if (!user) {
-        throw new BadRequestException('USER::USER_NOT_EXIST');
-      }
-      if (payload.roleId) {
-        const role = await this.authorizationService.getRole(payload.roleId);
-        user.role = role;
-      }
-      Object.assign(user, payload);
-      await this.userRepository.save(user);
-      return { message: 'USER::UPDATE_PROFILE_SUCCESS' };
-    } catch (error) {
-      this.logger.error(error?.stack);
-      throw error;
-    }
+    // try {
+    //   const user = await this.userRepository.findOne({ where: { id: userId } });
+    //   if (!user) {
+    //     throw new BadRequestException('USER::USER_NOT_EXIST');
+    //   }
+    //   if (payload.roleId) {
+    //     const role = await this.authorizationService.getRole(payload.roleId);
+    //     user.role = role;
+    //   }
+    //   Object.assign(user, payload);
+    //   await this.userRepository.save(user);
+    //   return { message: 'USER::UPDATE_PROFILE_SUCCESS' };
+    // } catch (error) {
+    //   this.logger.error(error?.stack);
+    //   throw error;
+    // }
   }
 }

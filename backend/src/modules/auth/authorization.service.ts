@@ -40,7 +40,7 @@ import { IHasPermission } from './interfaces';
 
 @Console()
 @Injectable()
-export class AuthorizationService implements OnApplicationBootstrap {
+export class AuthorizationService {
   private readonly logger = new Logger(AuthorizationService.name);
   constructor(
     private readonly discover: DiscoveryService,
@@ -55,12 +55,6 @@ export class AuthorizationService implements OnApplicationBootstrap {
     @Inject(forwardRef(() => UserService))
     private readonly usersService: UserService,
   ) {}
-
-  async onApplicationBootstrap() {
-    if (this.configService.get<string>('environment') === Environment.local) {
-      await this._genSuperAdminRole({ name: 'SuperAdmin' });
-    }
-  }
 
   async getRole(roleId: string) {
     try {
@@ -694,85 +688,6 @@ export class AuthorizationService implements OnApplicationBootstrap {
     return Array.from(masterPermissionCodes);
   }
 
-  private async _genSuperAdminRole(input): Promise<void> {
-    try {
-      console.time('Total run time: ');
-
-      // 1. Kiểm tra hoặc tạo permission *::*
-      let superAdminPms = await this.permissionRepository.findOne({
-        where: { code: '*::*', deletedAt: null },
-        relations: ['roles', 'roles.users'],
-      });
-
-      if (!superAdminPms) {
-        superAdminPms = await this.permissionRepository.save(
-          this.permissionRepository.create({
-            name: 'All Permission',
-            code: '*::*',
-            description: 'Full permission for super admin',
-          }),
-        );
-        console.log('Created new *::* permission.');
-      }
-
-      // 2. Kiểm tra hoặc tạo role Super Admin
-      let role = superAdminPms.roles?.find((r) => !r.deletedAt);
-      if (!role) {
-        role = await this.roleRepository.save(
-          this.roleRepository.create({
-            name: input.name || 'SuperAdmin',
-            description: 'Super admin role with full system permissions.',
-            isDefault: false,
-            permissions: [superAdminPms],
-          }),
-        );
-        console.log('Created new Super Admin role.');
-      } else {
-        console.log('Super Admin role already exists.');
-      }
-
-      // 3. Kiểm tra hoặc tạo user Super Admin
-      const hasUser = role.users?.length > 0;
-      if (!hasUser) {
-        const email = 'admin1@admin.com';
-        const password = 'Admin@123';
-
-        await this.usersService.create({
-          name: 'SuperAdmin1',
-          roleId: role.id,
-          email,
-          password,
-        });
-
-        console.log(
-          `.=========================================================.`,
-        );
-        console.log(
-          `|     Successfully generate super admin for the system.   |`,
-        );
-
-        console.log(`|     Super admin name: ${input.name}                  |`);
-        console.log(`|     Super admin email: ${email}                  |`);
-        console.log(`|     Super admin password: ${password}             |`);
-        console.log(
-          `.=========================================================.`,
-        );
-      } else {
-        console.log('Super Admin user already exists. Skipping user creation.');
-        console.log(`|     Super admin name: ${input.name}                  |`);
-        console.log(
-          `|     Super admin email: admin@admin.com                |`,
-        );
-        console.log(`|     Super admin password: Admin@123          |`);
-      }
-      console.timeEnd('Total run time: ');
-    } catch (error) {
-      this.logger.error(error?.stack);
-      throw new BadRequestException(
-        'AUTH::GEN_SUPER_ADMIN_FAILED' + error.message,
-      );
-    }
-  }
 
   async verifyAccess(accessToken, permission) {
     try {

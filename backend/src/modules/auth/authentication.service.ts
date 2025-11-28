@@ -41,6 +41,59 @@ export class AuthenticationService {
     return `https://github.com/login/oauth/authorize?client_id=${this.clientID}&redirect_uri=${this.callbackUrl}&scope=${scopes.join(' ')}`;
   }
 
+   async login(loginDto: LoginDto) {
+    try {
+      const { email, password } = loginDto;
+      const user = await this.validateUser(email, password);
+      if (!user) {
+        throw new UnauthorizedException('AUTH::EMAIL_OR_PASS_INCORRECT');
+      }
+      const issuedTime = Math.floor(new Date().getTime() / 1000);
+      const subject: IJwtRefreshPayload = {
+        sub: user.id,
+        issuedAt: issuedTime,
+      };
+      const payload: IPreJwtPayload = {
+        sub: user.id,
+        issuedAt: issuedTime,
+        pol: 'allow_all_policy',
+        name: user.name,
+        ...plainToInstance(UserEntity, user),
+      };
+
+      return {
+        refreshToken: this.jwtService.sign(subject, {
+          expiresIn: this.configService.get(
+            'authentication.refreshTokenExpiresInSec',
+          ),
+        }),
+        accessToken: this.jwtService.sign(
+          { ...payload },
+          {
+            expiresIn: this.configService.get(
+              'authentication.accessTokenExpiresInSec',
+            ),
+          },
+        ),
+      };
+    } catch (error) {
+      this.logger.error(error?.stack);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new BadRequestException('AUTH::LOGIN_FAILED', error.message);
+    }
+  }
+
+  async register(createUserDto: CreateUserDto): Promise<UserEntity> {
+    try {
+      return await this.userService.create(createUserDto);
+    } catch (error) {
+      this.logger.error(error?.stack);
+      throw new BadRequestException('AUTH::REGISTER_FAILED', error.message);
+    }
+  }
+
   async validateGithubLogin(code: string): Promise<any> {
     try {
       const tokenResponse = await axios.post(
@@ -88,15 +141,18 @@ export class AuthenticationService {
  
  
 
-  async validateUser(name: string, password: string): Promise<UserEntity> {
+  async validateUser(email: string, password: string): Promise<UserEntity> {
     try {
-      const user = await this.userService.findOneByName(name);
+      const user = await this.userService.findOneByEmail(email);
 
       if (!user) {
-        throw new UnauthorizedException('AUTH::USERNAME_OR_PASS_INCORRECT');
+        throw new UnauthorizedException('AUTH::EMAIL_OR_PASS_INCORRECT');
       }
-      if (!this.authHelper.comparePassword(password, user.password)) {
-        throw new UnauthorizedException('AUTH::USERNAME_OR_PASS_INCORRECT');
+      console.log('Validating password', user.password);
+      const check = this.authHelper.comparePassword(password, user.password);
+      console.log('Password valid:', check);
+      if (!check) {
+        throw new UnauthorizedException('AUTH::EMAIL_OR_PASS_INCORRECT');
       }
       return user;
     } catch (error) {

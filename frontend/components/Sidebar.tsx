@@ -89,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                  <img src={user.avatar} alt="User" className="w-full h-full rounded-full" />
                ) : (
                  <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold">
-                   {user?.name.charAt(0).toUpperCase()}
+                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                  </div>
                )}
             </div>

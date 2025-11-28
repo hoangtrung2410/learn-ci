@@ -1,131 +1,169 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../../types';
-import { API_BASE_URL } from '../../constants';
+import { authService } from '../../services/authService';
 
 interface AuthContextType {
-    user: User | null;
-    isLoading: boolean;
-    loginWithGithub: () => Promise<void>;
-    logout: () => void;
+  user: User | null;
+  isLoading: boolean;
+  loginWithGithub: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    useEffect(() => {
-        const checkSession = async () => {
-            const storedUser = localStorage.getItem('trunk_user');
+  useEffect(() => {
+    const checkSession = async () => {
+       const storedUser = localStorage.getItem('trunk_user');
+       const urlUser = authService.getUserFromUrl();
+       
+       if (urlUser) {
+          setUser(urlUser);
+          localStorage.setItem('trunk_user', JSON.stringify(urlUser));
+       } else if (storedUser) {
+         // Fallback to local storage
+         setUser(JSON.parse(storedUser));
+       } else {
+         // Try fetching current user from backend (useful when backend set HttpOnly cookie/session)
+         try {
+           const current = await authService.fetchCurrentUser();
+           if (current) {
+             setUser(current);
+             localStorage.setItem('trunk_user', JSON.stringify(current));
+           }
+         } catch (err) {
+           console.warn('fetchCurrentUser failed', err);
+         }
+       }
+       
+       setIsLoading(false);
+    };
 
-            // Handle OAuth Redirect Callback from GitHub
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
+    checkSession();
+  }, []);
 
-            if (code) {
-                // Clean the URL immediately so the code isn't reusable/visible
-                window.history.replaceState({}, document.title, window.location.pathname);
+  const loginWithGithub = async () => {
+    setIsLoading(true);
+    try {
+      const res = await authService.loginWithGithub();
 
-                try {
-                    setIsLoading(true);
-                    // Call NestJS Backend to exchange code for user info
-                    const response = await fetch(`${API_BASE_URL}/auth/github/callback`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code })
-                    });
+      // backend may return { data: { url: '...' } } or { url: '...' }
+      const target = res?.data?.url ?? res?.url;
+      if (target) {
+        window.location.href = target;
+      } else {
+        console.error('No redirect URL returned from auth endpoint', res);
+        alert('Login failed: no redirect URL returned');
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Failed to start GitHub login', error);
+      alert('Failed to initiate login.');
+      setIsLoading(false);
+    }
+  };
 
-                    if (!response.ok) {
-                        throw new Error('GitHub Authentication failed');
-                    }
-
-                    const data = await response.json();
-
-                    // Backend should return user object
-                    const userData: User = {
-                        id: data.id || 'unknown',
-                        name: data.name || data.login,
-                        email: data.email || 'no-email-public',
-                        avatar: data.avatar_url,
-                        role: 'developer' // Default role
-                    };
-
-                    setUser(userData);
-                    localStorage.setItem('trunk_user', JSON.stringify(userData));
-                } catch (error) {
-                    console.error('OAuth callback failed', error);
-                    alert('Failed to login with GitHub. Please try again.');
-                }
-            } else if (storedUser) {
-                // Restore session from local storage
-                setUser(JSON.parse(storedUser));
-            }
-
-            setIsLoading(false);
-        };
-
-        checkSession();
-    }, []);
-
-    const loginWithGithub = async () => {
+  const loginWithEmail = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+  const res = await authService.loginWithEmail(email, password);
+  // normalize nested response shapes: { success, data: { ... } } or direct payload
+  const body = res?.data ?? res;
+  const payload = body?.data ?? body;
+  const possibleUser = payload?.user ?? payload;
+  if (payload?.accessToken) {
         try {
-            // Step 1: Get the GitHub Login URL from Backend (Securely gets Client ID)
-            const res = await fetch(`${API_BASE_URL}/auth/github/url`);
+          localStorage.setItem('accessToken', payload.accessToken);
+          if (payload.refreshToken) localStorage.setItem('refreshToken', payload.refreshToken);
 
-            if (!res.ok) {
-                throw new Error(`Failed to fetch auth URL: ${res.status}`);
-            }
-
-            const json = await res.json();
-            console.log('GitHub URL response:', json);
-            const url = json?.data?.url || json?.url;
-
-            if (!url) {
-                throw new Error('No URL returned from backend');
-            }
-            const expectedRedirect = window.location.origin; // e.g., http://localhost:5173
+          // decode JWT payload without extra dependency
+          const parseJwt = (token: string) => {
             try {
-                const parsed = new URL(url);
-                const returnedRedirect = parsed.searchParams.get('redirect_uri');
-
-                if (returnedRedirect && returnedRedirect !== expectedRedirect) {
-                    console.warn(
-                        `redirect_uri mismatch:\n` +
-                        `  Returned: "${returnedRedirect}"\n` +
-                        `  Expected: "${expectedRedirect}"\n` +
-                        `Proceeding anyway, but update GitHub OAuth App callback URL to: ${expectedRedirect}`
-                    );
-                }
+              const payload = token.split('.')[1];
+              const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+              return JSON.parse(decodeURIComponent(escape(json)));
             } catch (e) {
-                console.warn('Could not validate redirect_uri', e);
+              console.warn('Failed to parse JWT', e);
+              return null;
             }
+          };
 
-            // Step 2: Redirect user to GitHub
-            console.log('Redirecting to GitHub OAuth:', url);
-            window.location.href = url;
-        } catch (error) {
-            console.error("Failed to start GitHub login", error);
-            alert("Backend service is not reachable. Check if NestJS is running on port 3456.");
+          const payloadFromToken = parseJwt(payload.accessToken);
+          const derivedUser = payloadFromToken
+            ? {
+                id: payloadFromToken.id ?? payloadFromToken.sub,
+                name: payloadFromToken.name ?? payloadFromToken.username ?? payloadFromToken.sub,
+                email: payloadFromToken.email,
+                avatar: payloadFromToken.avatar ?? '',
+                role: payloadFromToken.role ?? 'developer',
+              }
+            : null;
+
+          if (derivedUser) {
+            setUser(derivedUser as User);
+            localStorage.setItem('trunk_user', JSON.stringify(derivedUser));
+          } else {
+            // fallback: if backend also provides a user object inside res
+            const returnedUser = payload?.user ?? null;
+            if (returnedUser) {
+              setUser(returnedUser);
+              localStorage.setItem('trunk_user', JSON.stringify(returnedUser));
+            } else {
+              // If we only got tokens (no user in token payload and no user object),
+              // attempt to fetch the current user from the backend using the stored token.
+              try {
+                const fetched = await authService.fetchCurrentUser();
+                if (fetched) {
+                  setUser(fetched);
+                  localStorage.setItem('trunk_user', JSON.stringify(fetched));
+                }
+              } catch (e) {
+                console.warn('Failed to fetch user after token login', e);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Failed to handle token response', err);
         }
-    };
+      } else if (possibleUser && (possibleUser.id || possibleUser.email)) {
+        // Received user object directly
+        setUser(possibleUser as User);
+        localStorage.setItem('trunk_user', JSON.stringify(possibleUser));
+      } else {
+        console.error('No user returned from email login', res);
+        alert('Login failed: no user returned');
+      }
+    } catch (err) {
+      console.error('Email login failed', err);
+      alert('Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('trunk_user');
-    };
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('trunk_user');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  };
 
-    return (
-        <AuthContext.Provider value={{ user, isLoading, loginWithGithub, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider value={{ user, isLoading, loginWithGithub, loginWithEmail, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

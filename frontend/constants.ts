@@ -1,9 +1,11 @@
 import { Status, Run, ChartDataPoint, DoraMetric, ArchitectureComparison, Recommendation } from './types';
 
-// Trỏ về Backend NestJS
-export const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:3456/api/v1';
-
-// Mock data for development and testing
+// API Configuration
+// We use import.meta.env for Vite environment variables
+// Fallback to localhost:3456 if env var is not set
+// Use Vite env (import.meta.env) and default to a relative path so the dev
+// server proxy can forward requests to the backend and avoid CORS in dev.
+export const API_BASE_URL = ((import.meta as any).env?.VITE_API_URL) || '/api/v1';
 
 export const MOCK_RUNS: Run[] = [
   {
@@ -32,8 +34,7 @@ FAIL src/auth/tests/login.test.ts
   ● Auth Service › should handle concurrent login requests
 
   ReferenceError: process is not defined
-    at Object.<anonymous> (src/utils/env.ts:3:15)
-    at Object.asyncJestTest (src/auth/tests/login.test.ts:45:12)`
+    at Object.<anonymous> (src/utils/env.ts:3:15)`
   },
   {
     id: 'run-8390',
@@ -67,42 +68,6 @@ FAIL src/auth/tests/login.test.ts
 
 FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory`
   },
-  {
-    id: 'run-8387',
-    branch: 'main',
-    commitMessage: 'docs: update readme',
-    author: 'alex.dev',
-    status: Status.SUCCESS,
-    duration: '1m 10s',
-    startedAt: '5 hours ago',
-  },
-  {
-    id: 'run-8386',
-    branch: 'feat/user-profile',
-    commitMessage: 'feat: add avatar upload',
-    author: 'sarah.engineer',
-    status: Status.SUCCESS,
-    duration: '5m 22s',
-    startedAt: '6 hours ago',
-  },
-  {
-    id: 'run-8385',
-    branch: 'chore/cleanup',
-    commitMessage: 'refactor: remove unused variables',
-    author: 'linter-bot',
-    status: Status.CANCELED,
-    duration: '0m 45s',
-    startedAt: '8 hours ago',
-  },
-  {
-    id: 'run-8384',
-    branch: 'fix/mobile-nav',
-    commitMessage: 'fix: z-index issue on mobile menu',
-    author: 'dave.ui',
-    status: Status.SUCCESS,
-    duration: '3m 15s',
-    startedAt: '1 day ago',
-  }
 ];
 
 export const MOCK_CHART_DATA: ChartDataPoint[] = [

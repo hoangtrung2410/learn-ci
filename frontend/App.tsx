@@ -1,38 +1,21 @@
 import React, { useState } from 'react';
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
-import { 
-  Search, 
-  Bell, 
-  Filter, 
-  ExternalLink, 
-  Play, 
-  Plus, 
-  Sliders, 
-  Check, 
-  Shield,
-  LogOut
-} from 'lucide-react';
+import { Search, Bell, Play, Plus } from 'lucide-react';
 
+// Components
 import Sidebar from './components/Sidebar';
-import MetricsCard from './components/MetricsCard';
-import RunTable from './components/RunTable';
 import AICopilotPanel from './components/AICopilotPanel';
+import { AuthProvider, useAuth } from './components/auth/AuthContext';
+
+// Routers (Pages)
+import Dashboard from './routers/Dashboard';
+import Runs from './routers/Runs';
+import Settings from './routers/Settings';
+import LoginView from './routers/LoginView'; // Updated import path
 import SecurityView from './components/security/SecurityView';
 import InsightsView from './components/InsightsView';
 import SystemOptimizerView from './components/optimizer/SystemOptimizerView';
-import { AuthProvider, useAuth } from './components/auth/AuthContext';
-import LoginView from './components/auth/LoginView';
 
-import { MOCK_RUNS, MOCK_CHART_DATA } from './constants';
+import { MOCK_RUNS } from './constants';
 import { Run, Status } from './types';
 
 // --- Authenticated Layout Content ---
@@ -44,22 +27,7 @@ const AuthenticatedApp: React.FC = () => {
   const [runs, setRuns] = useState<Run[]>(MOCK_RUNS);
   const [selectedRun, setSelectedRun] = useState<Run | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  
-  // --- Filter State ---
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | Status>('ALL');
-
-  // --- Derived State ---
-  const filteredRuns = runs.filter(run => {
-    const matchesSearch = 
-      run.commitMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      run.branch.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      run.author.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'ALL' || run.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
 
   // --- Handlers ---
   const handleRunSelect = (run: Run) => {
@@ -99,192 +67,36 @@ const AuthenticatedApp: React.FC = () => {
     }, 3000);
   };
 
-  // --- Views ---
-
-  const renderDashboard = () => (
-    <div className="space-y-6 animate-fade-in">
-       {/* Metrics Grid */}
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricsCard metric={{ label: 'Pass Rate', value: '94.2%', change: 2.5, trend: 'up' }} />
-        <MetricsCard metric={{ label: 'P95 Duration', value: '4m 12s', change: -12, trend: 'up' }} />
-        <MetricsCard metric={{ label: 'Weekly Runs', value: runs.length.toString(), change: 8.4, trend: 'up' }} />
-        <MetricsCard metric={{ label: 'Active Issues', value: runs.filter(r => r.status === Status.FAILURE).length.toString(), change: 5, trend: 'down' }} />
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-surface border border-border rounded-lg p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Stability Trend</h3>
-                <p className="text-xs text-slate-500">Success vs Failure rate over time</p>
-              </div>
-              <button className="text-xs text-primary hover:underline flex items-center gap-1">
-                View Report <ExternalLink size={10} />
-              </button>
-            </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={MOCK_CHART_DATA} barSize={20}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="name" stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} dy={10} />
-                  <YAxis stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', color: '#fff', borderRadius: '6px' }}
-                    cursor={{fill: '#27272a', opacity: 0.4}}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
-                  <Bar dataKey="success" name="Passed" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="failure" name="Failed" stackId="a" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-        </div>
-
-        {/* Pipeline Health */}
-        <div className="bg-surface border border-border rounded-lg p-5 shadow-sm h-full flex flex-col justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-4">Pipeline Health</h3>
-              <div className="space-y-6">
-                  <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Code Coverage</span>
-                          <span className="text-white font-mono">86%</span>
-                      </div>
-                      <div className="w-full bg-background rounded-full h-1.5 overflow-hidden">
-                          <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '86%' }}></div>
-                      </div>
-                  </div>
-                  <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                          <span className="text-slate-400">Flaky Tests</span>
-                          <span className="text-amber-500 font-mono">Low (3)</span>
-                      </div>
-                      <div className="w-full bg-background rounded-full h-1.5 overflow-hidden">
-                          <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: '12%' }}></div>
-                      </div>
-                  </div>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-surfaceHighlight/50 rounded-lg border border-border mt-4">
-               <div className="flex items-center gap-2 mb-1">
-                  <Shield size={14} className="text-emerald-500" />
-                  <span className="text-xs font-semibold text-white">Security Scan</span>
-               </div>
-               <p className="text-xs text-slate-400">No high severity vulnerabilities detected in the last scan.</p>
-            </div>
-        </div>
-      </div>
-
-      <div className="flex-1">
-         <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-300">Recent Activity</h3>
-            <button onClick={() => setActivePage('runs')} className="text-xs text-primary hover:text-indigo-400">View All</button>
-         </div>
-         <RunTable runs={runs.slice(0, 5)} onSelectRun={handleRunSelect} />
-      </div>
-    </div>
-  );
-
-  const renderRunsList = () => (
-    <div className="space-y-4 h-full flex flex-col animate-fade-in">
-       <div className="bg-surface border border-border rounded-lg p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-             <button 
-                onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === 'ALL' ? 'bg-primary text-white' : 'bg-background text-slate-400 hover:text-white'}`}
-             >
-                All Runs
-             </button>
-             <button 
-                onClick={() => setStatusFilter(Status.FAILURE)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === Status.FAILURE ? 'bg-error text-white' : 'bg-background text-slate-400 hover:text-white'}`}
-             >
-                Failures
-             </button>
-             <button 
-                onClick={() => setStatusFilter(Status.SUCCESS)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === Status.SUCCESS ? 'bg-success text-white' : 'bg-background text-slate-400 hover:text-white'}`}
-             >
-                Success
-             </button>
-          </div>
-          <div className="text-xs text-slate-500">
-             Showing {filteredRuns.length} runs
-          </div>
-       </div>
-
-       <div className="flex-1 overflow-hidden">
-          {filteredRuns.length > 0 ? (
-             <RunTable runs={filteredRuns} onSelectRun={handleRunSelect} />
-          ) : (
-            <div className="h-64 flex flex-col items-center justify-center border border-dashed border-border rounded-lg bg-surface/50">
-               <div className="w-12 h-12 rounded-full bg-surfaceHighlight flex items-center justify-center mb-3">
-                  <Search size={20} className="text-slate-500" />
-               </div>
-               <p className="text-slate-300 font-medium">No runs found</p>
-               <p className="text-xs text-slate-500 mt-1">Try adjusting your filters or search query</p>
-            </div>
-          )}
-       </div>
-    </div>
-  );
-
-  const renderSettings = () => (
-    <div className="max-w-2xl mx-auto w-full animate-fade-in space-y-8 mt-4">
-       <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-border">
-             <h3 className="text-lg font-medium text-white">General Settings</h3>
-             <p className="text-sm text-slate-500">Manage your project configuration</p>
-          </div>
-          <div className="p-6 space-y-6">
-             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Project Name</label>
-                <input type="text" defaultValue="TrunkLike Dashboard" className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary" />
+  // --- Route Renderer ---
+  const renderContent = () => {
+    switch(activePage) {
+      case 'dashboard':
+        return <Dashboard runs={runs} onRunSelect={handleRunSelect} setActivePage={setActivePage} />;
+      case 'runs':
+        return <Runs runs={runs} searchQuery={searchQuery} onRunSelect={handleRunSelect} />;
+      case 'settings':
+        return <Settings />;
+      case 'security':
+        return <SecurityView />;
+      case 'insights':
+        return <InsightsView />;
+      case 'optimizer':
+        return <SystemOptimizerView />;
+      case 'tests':
+      case 'branches':
+        return (
+          <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
+             <div className="w-16 h-16 border-2 border-dashed border-slate-700 rounded-full flex items-center justify-center mb-4">
+                <Plus size={24} />
              </div>
-             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Default Branch</label>
-                <select className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary">
-                   <option>main</option>
-                   <option>master</option>
-                   <option>develop</option>
-                </select>
-             </div>
-             <div className="flex items-center justify-between pt-4">
-                <div>
-                   <h4 className="text-sm font-medium text-white">Public Dashboard</h4>
-                   <p className="text-xs text-slate-500">Allow anyone with the link to view metrics</p>
-                </div>
-                <div className="w-10 h-6 bg-primary rounded-full relative cursor-pointer">
-                   <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
-                </div>
-             </div>
+             <h3 className="text-lg font-medium text-white">Under Construction</h3>
+             <p className="text-sm mt-1">The {activePage} module is coming soon.</p>
           </div>
-          <div className="px-6 py-4 bg-surfaceHighlight/30 border-t border-border flex justify-end">
-             <button className="px-4 py-2 bg-primary hover:bg-indigo-600 text-white text-sm font-medium rounded-md transition-colors">
-                Save Changes
-             </button>
-          </div>
-       </div>
-
-       <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-border">
-             <h3 className="text-lg font-medium text-white">Notifications</h3>
-          </div>
-          <div className="p-6 space-y-4">
-             {['Build Failures', 'Deployment Success', 'New Pull Requests'].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                   <div className="w-4 h-4 rounded border border-slate-500 bg-transparent flex items-center justify-center text-transparent hover:border-primary cursor-pointer">
-                      <Check size={10} />
-                   </div>
-                   <span className="text-sm text-slate-300">{item}</span>
-                </div>
-             ))}
-          </div>
-       </div>
-    </div>
-  );
+        );
+      default:
+        return <Dashboard runs={runs} onRunSelect={handleRunSelect} setActivePage={setActivePage} />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-slate-200 font-sans flex">
@@ -336,39 +148,7 @@ const AuthenticatedApp: React.FC = () => {
         {/* Page Content Container */}
         <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
            <div className="max-w-[1600px] mx-auto h-full flex flex-col">
-              
-              {/* Header Actions (Conditional) */}
-              {activePage === 'runs' && (
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-white tracking-tight">Workflow Runs</h2>
-                      <p className="text-slate-500 text-sm">History across all branches</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="p-2 bg-surface border border-border rounded text-slate-400 hover:text-white"><Filter size={16} /></button>
-                        <button className="p-2 bg-surface border border-border rounded text-slate-400 hover:text-white"><Sliders size={16} /></button>
-                    </div>
-                </div>
-              )}
-
-              {/* Render Active View */}
-              {activePage === 'dashboard' && renderDashboard()}
-              {activePage === 'runs' && renderRunsList()}
-              {activePage === 'settings' && renderSettings()}
-              {activePage === 'security' && <SecurityView />}
-              {activePage === 'insights' && <InsightsView />}
-              {activePage === 'optimizer' && <SystemOptimizerView />}
-              
-              {/* Fallback for other pages */}
-              {['tests', 'branches'].includes(activePage) && (
-                 <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
-                    <div className="w-16 h-16 border-2 border-dashed border-slate-700 rounded-full flex items-center justify-center mb-4">
-                       <Plus size={24} />
-                    </div>
-                    <h3 className="text-lg font-medium text-white">Under Construction</h3>
-                    <p className="text-sm mt-1">The {activePage} module is coming soon.</p>
-                 </div>
-              )}
+              {renderContent()}
            </div>
         </div>
       </main>

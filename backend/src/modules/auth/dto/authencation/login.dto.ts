@@ -6,8 +6,8 @@ export class LoginDto {
     example: 'SuperAdmin',
     description: 'Username or email of the user',
   })
-  @IsString({ message: 'AUTH::NAME_MUST_BE_STRING' })
-  name: string;
+  @IsString({ message: 'AUTH::EMAIL_MUST_BE_STRING' })
+  email: string;
 
   @ApiProperty({
     example: 'Admin@123',
