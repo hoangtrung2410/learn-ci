@@ -8,10 +8,10 @@ import {
   ExternalLink,
   Loader2,
 } from "lucide-react";
-import { Project, Token } from "../types/types";
-import { projectService } from "../services/projectService";
-import { tokenService } from "../services/tokenService";
-import ProjectModal from "./ProjectModal";
+import { Project, Token } from "../../types/types";
+import { projectService } from "../../services/projectService";
+import { tokenService } from "../../services/tokenService";
+import ProjectModal from "../projects/ProjectModal";
 
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);

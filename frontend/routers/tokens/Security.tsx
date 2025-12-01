@@ -10,8 +10,8 @@ import {
   Lock,
   Loader2,
 } from "lucide-react";
-import { Token } from "../types/types";
-import { tokenService } from "../services/tokenService";
+import { Token } from "../../types/types";
+import { tokenService } from "../../services/tokenService";
 import TokenModal from "./TokenModal";
 
 const Security: React.FC = () => {

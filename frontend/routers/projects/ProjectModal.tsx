@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, FolderGit, Link as LinkIcon, Lock } from "lucide-react";
-import { Project, Token } from "../types/types";
+import { Project, Token } from "../../types/types";
 
 interface ProjectModalProps {
   isOpen: boolean;

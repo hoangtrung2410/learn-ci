@@ -10,11 +10,11 @@ import {
   Legend,
 } from "recharts";
 import { ExternalLink, Shield } from "lucide-react";
-import MetricsCard from "../components/MetricsCard";
-import DoraMetrics from "../components/DoraMetrics";
-import RunTable from "../components/RunTable";
-import { Run, Status } from "../types/types";
-import { MOCK_CHART_DATA } from "../constants";
+import MetricsCard from "../../components/MetricsCard";
+import DoraMetrics from "../../components/DoraMetrics";
+import RunTable from "../../components/RunTable";
+import { Run, Status } from "../../types/types";
+import { MOCK_CHART_DATA } from "../../constants";
 
 interface DashboardProps {
   runs: Run[];

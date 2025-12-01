@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Search, Filter, Sliders } from "lucide-react";
-import RunTable from "../components/RunTable";
-import { Run, Status } from "../types/types";
+import RunTable from "../../components/RunTable";
+import { Run, Status } from "../../types/types";
 
 interface RunsProps {
   runs: Run[];

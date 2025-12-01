@@ -19,8 +19,8 @@ import {
   DORA_METRICS,
   ARCHITECTURE_SCENARIOS,
   STRATEGIC_RECOMMENDATIONS,
-} from "../constants";
-import { DoraMetric } from "../types/types";
+} from "../../constants";
+import { DoraMetric } from "../../types/types";
 
 const Insights: React.FC = () => {
   const getStatusColor = (status: DoraMetric["status"]) => {
@@ -160,13 +160,12 @@ const Insights: React.FC = () => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                      rec.category === "Architecture"
+                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${rec.category === "Architecture"
                         ? "bg-indigo-500/20 text-indigo-300"
                         : rec.category === "Infrastructure"
                           ? "bg-emerald-500/20 text-emerald-300"
                           : "bg-amber-500/20 text-amber-300"
-                    }`}
+                      }`}
                   >
                     {rec.category}
                   </span>

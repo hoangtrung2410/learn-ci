@@ -8,14 +8,14 @@ import RunDetailsPanel from "./components/RunDetailsPanel";
 import { AuthProvider, useAuth } from "./components/auth/AuthContext";
 
 // Routers (Pages)
-import Dashboard from "./routers/Dashboard";
-import Runs from "./routers/Runs";
-import Settings from "./routers/Settings";
-import LoginView from "./routers/LoginView";
-import Security from "./routers/Security";
-import Insights from "./routers/Insights";
-import Optimizer from "./routers/Optimizer";
-import Projects from "./routers/Projects";
+import Dashboard from "./routers/dashboard/Dashboard";
+import Runs from "./routers/dashboard/Runs";
+import Settings from "./routers/settings/Settings";
+import LoginView from "./routers/auth/LoginView";
+import Security from "./routers/tokens/Security";
+import Insights from "./routers/dashboard/Insights";
+import Optimizer from "./routers/dashboard/Optimizer";
+import Projects from "./routers/projects/Projects";
 
 import { MOCK_RUNS } from "./constants";
 import { Run, Status } from "./types/types";
@@ -168,7 +168,7 @@ const AuthenticatedApp: React.FC = () => {
       const p = location.pathname || "/";
       if (p === "/" || p === "/home") setActivePage("dashboard");
       else setActivePage(p.replace(/^\//, ""));
-    } catch (_) {}
+    } catch (_) { }
   }, [location.pathname]);
 
   return (

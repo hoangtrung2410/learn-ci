@@ -1,8 +1,8 @@
 
 import React from 'react';
-import DependencyMatrix from '../components/optimizer/DependencyMatrix';
-import DeploymentSimulator from '../components/optimizer/DeploymentSimulator';
-import ResourceProjection from '../components/optimizer/ResourceProjection';
+import DependencyMatrix from '../../components/optimizer/DependencyMatrix';
+import DeploymentSimulator from '../../components/optimizer/DeploymentSimulator';
+import ResourceProjection from '../../components/optimizer/ResourceProjection';
 
 const Optimizer: React.FC = () => {
   return (
@@ -11,23 +11,23 @@ const Optimizer: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">System Optimizer</h2>
           <p className="text-slate-400 text-sm mt-1">
-             Architectural Decision Support System (ADSS)
+            Architectural Decision Support System (ADSS)
           </p>
         </div>
         <div className="flex gap-2">
-            <span className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-xs rounded-full font-medium">v2.1 Simulator</span>
+          <span className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-xs rounded-full font-medium">v2.1 Simulator</span>
         </div>
       </div>
 
       {/* Row 1: Resource Simulator (Full Width) */}
       <div className="w-full">
-         <ResourceProjection />
+        <ResourceProjection />
       </div>
 
       {/* Row 2: Matrix & Deployment */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-h-[500px]">
-         <DependencyMatrix />
-         <DeploymentSimulator />
+        <DependencyMatrix />
+        <DeploymentSimulator />
       </div>
     </div>
   );

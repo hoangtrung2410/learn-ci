@@ -11,7 +11,7 @@ import {
   Lock,
   User,
 } from "lucide-react";
-import { useAuth } from "../components/auth/AuthContext";
+import { useAuth } from "../../components/auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const LoginView: React.FC = () => {
