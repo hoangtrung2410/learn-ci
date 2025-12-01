@@ -7,8 +7,8 @@ export function setupSwagger(app: INestApplication): void {
   console.log(`${configService.get('APP_SERVER_HOST')}`);
   const configSwagger = new DocumentBuilder()
     .addBearerAuth()
-    .setTitle('SMART_IAM')
-    .setDescription('SMART_IAM Swagger API Documentation')
+    .setTitle('ALERT CI')
+    .setDescription('ALERT CI Swagger API Documentation')
     .setVersion('1.0')
     .setExternalDoc('swagger.json', 'swagger.json')
     .addServer(`http://localhost:${process.env['PORT']}`, 'Local Server')

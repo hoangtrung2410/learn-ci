@@ -16,5 +16,4 @@ export class UserFactoryHelper extends FactoryHelper {
       this.configService.get('authentication.loginUrl'),
     );
   }
-
 }

@@ -1,7 +1,8 @@
 import { DataSource } from 'typeorm';
 import { runSeeders } from 'typeorm-extension';
-import connectionOptions from '../ormconfig'
-import AuthSeeder from './auth.seeder';
+import connectionOptions from '../ormconfig';
+// import AuthSeeder from './auth.seeder';
+import TokenSeeder from './token.seeder';
 
 async function bootstrap() {
   const dataSource = new DataSource(connectionOptions);
@@ -9,7 +10,7 @@ async function bootstrap() {
   try {
     await dataSource.initialize();
     await runSeeders(dataSource, {
-      seeds: [AuthSeeder],
+      seeds: [TokenSeeder],
     });
     console.log('✅ Seeding completed');
   } catch (err) {

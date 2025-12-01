@@ -6,12 +6,12 @@ import configuration from './configs/configurations';
 import { ExceptionFilter } from './filters/exception.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
+import { TokenModule } from './modules/token/token.module';
 import { HealthCheckerModule } from './modules/health-checker/health-checker.module';
-import { RedisCacheModule } from './modules/redis/redis.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 
 @Module({
   imports: [
-    RedisCacheModule,
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,
@@ -23,6 +23,8 @@ import { RedisCacheModule } from './modules/redis/redis.module';
     }),
     UserModule,
     AuthModule,
+    TokenModule,
+    ProjectsModule,
     HealthCheckerModule,
   ],
   providers: [

@@ -72,24 +72,20 @@ async function bootstrap() {
   // Global Prefix
   app.setGlobalPrefix(`${API_PREFIX}/${API_VERSION}`);
 
-  // Enable CORS + Helmet
-  // Configure CORS using environment variable CORS_ORIGIN (comma-separated list)
-  // Default to http://localhost:3000 for local frontend development.
-  const allowedOrigins = ('http://localhost:3000');
+  const allowedOrigins = 'http://localhost:5173';
   app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin like curl/postman or same-origin server-to-server
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new BadRequestException(msg), false);
       }
-      return callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     },
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Authorization, Accept, X-Requested-With',
   });
-
   // Middleware
   app.use(compression());
   app.use(morgan('dev'));

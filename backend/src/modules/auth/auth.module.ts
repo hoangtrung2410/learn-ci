@@ -4,7 +4,7 @@ import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthController } from './auth.controller'; 
+import { AuthController } from './auth.controller';
 import { AuthenticationService } from './authentication.service';
 import { AuthorizationService } from './authorization.service';
 import { STRATEGY_JWT_AUTH } from './constants/auth.constant';
@@ -31,7 +31,7 @@ import {
 
 @Module({
   imports: [
-  forwardRef(() => UserModule),
+    forwardRef(() => UserModule),
     PassportModule.register({
       defaultStrategy: STRATEGY_JWT_AUTH,
     }),
@@ -62,13 +62,12 @@ import {
     DiscoveryService,
     AuthFactoryHelper,
     FactoryHelper,
-  AuthenticationService,
-  AuthorizationService,
-  ConfigService,
+    AuthenticationService,
+    AuthorizationService,
+    ConfigService,
     LocalStrategy,
     JwtAuthStrategy,
     JwtRefreshStrategy,
-
   ],
   exports: [AuthenticationService, AuthorizationService],
 })

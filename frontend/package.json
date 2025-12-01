@@ -9,18 +9,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-markdown": "^10.1.0",
     "@google/genai": "^1.30.0",
-    "lucide-react": "^0.554.0",
-    "react-dom": "^19.2.0",
-    "recharts": "^3.5.0",
-    "axios": "^1.13.2",
-    "@nestjs/core": "^11.1.9",
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.9",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.9",
+    "@react-router/dev": "^7.9.6",
+    "axios": "^1.13.2",
+    "buffer": "^6.0.3",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "@react-router/dev": "^7.9.6"
+    "lucide-react": "^0.554.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.9.6",
+    "recharts": "^3.5.0",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -1,9 +1,27 @@
 export enum Status {
-  SUCCESS = 'SUCCESS',
-  FAILURE = 'FAILURE',
-  RUNNING = 'RUNNING',
-  QUEUED = 'QUEUED',
-  CANCELED = 'CANCELED'
+  SUCCESS = "SUCCESS",
+  FAILURE = "FAILURE",
+  RUNNING = "RUNNING",
+  QUEUED = "QUEUED",
+  CANCELED = "CANCELED",
+  SKIPPED = "SKIPPED",
+}
+
+export interface Step {
+  id: string;
+  name: string;
+  status: Status;
+  duration: string;
+  startedAt: string;
+  logs?: string;
+}
+
+export interface Job {
+  id: string;
+  name: string;
+  status: Status;
+  duration: string;
+  steps: Step[];
 }
 
 export interface Run {
@@ -14,14 +32,16 @@ export interface Run {
   status: Status;
   duration: string;
   startedAt: string;
-  logs?: string; // For AI analysis
+  jobs?: Job[]; // Added for Deep Dive
+  logs?: string; // For AI analysis (aggregate)
 }
 
 export interface StatMetric {
   label: string;
   value: string | number;
   change?: number; // percentage
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
+  description?: string;
 }
 
 export interface ChartDataPoint {
@@ -36,13 +56,22 @@ export interface Token {
   token: string;
   created?: string;
 }
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  url_organization: string;
+  token: Token;
+  status?: string;
+}
 
 export interface User {
+  refreshToken: string;
   id: string;
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'developer' | 'viewer';
+  role: "admin" | "developer" | "viewer";
   accessToken?: string;
 }
 
@@ -53,7 +82,7 @@ export interface DoraMetric {
   label: string;
   value: string;
   target: string;
-  status: 'healthy' | 'warning' | 'critical';
+  status: "healthy" | "warning" | "critical";
   description: string;
 }
 
@@ -66,8 +95,8 @@ export interface ArchitectureComparison {
 export interface Recommendation {
   id: string;
   title: string;
-  category: 'Architecture' | 'Infrastructure' | 'Process';
-  impact: 'High' | 'Medium' | 'Low';
+  category: "Architecture" | "Infrastructure" | "Process";
+  impact: "High" | "Medium" | "Low";
   description: string;
   action: string;
 }

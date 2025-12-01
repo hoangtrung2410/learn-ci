@@ -24,13 +24,6 @@ export class HealthCheckerController {
   async check(): Promise<HealthCheckResult> {
     return await this.healthCheckService.check([
       () => this.ormIndicator.pingCheck('database', { timeout: 1500 }),
-      () =>
-        this.microservice.pingCheck('rabbitmq', {
-          transport: Transport.RMQ,
-          options: {
-            urls: [process.env.RABBITMQ_CONN],
-          },
-        }),
     ]);
   }
 }

@@ -1,8 +1,19 @@
-import { Controller, Get, Query, Res, Req, HttpStatus } from '@nestjs/common'
-import { Response, Request } from 'express'
-import { AuthenticationService } from './authentication.service'
-import { JwtService } from '@nestjs/jwt'
-import { ConfigService } from '@nestjs/config'
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  Req,
+  HttpStatus,
+  Post,
+  Body,
+} from '@nestjs/common';
+import { RegisterDto } from './dto/authencation/register.dto';
+import { Response, Request } from 'express';
+import { AuthenticationService } from './authentication.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { LoginDto } from './dto/authencation';
 
 @Controller('auth')
 export class AuthController {
@@ -14,21 +25,28 @@ export class AuthController {
 
   @Get('github')
   redirectToGithub(@Res() res: Response): void {
-    const url = this.authService.getGithubLoginUrl()
-    res.redirect(url)
-    return
+    const url = this.authService.getGithubLoginUrl();
+    res.redirect(url);
+    return;
   }
 
   @Get('github/url')
   getGithubUrl() {
-    return { url: this.authService.getGithubLoginUrl() }
+    return { url: this.authService.getGithubLoginUrl() };
   }
 
   @Get('github/callback')
-  async githubCallback(
-    @Query('code') code: string,
-  ) {
-   return this.authService.validateGithubLogin(code); 
+  async githubCallback(@Query('code') code: string) {
+    return this.authService.validateGithubLogin(code);
+  }
+
+  @Post('register')
+  async register(@Body() body: RegisterDto) {
+    return this.authService.register(body);
+  }
+
+  @Post('login')
+  async login(@Body() body: LoginDto) {
+    return this.authService.login(body);
   }
 }
-

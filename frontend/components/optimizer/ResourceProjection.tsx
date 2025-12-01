@@ -30,7 +30,13 @@ const ResourceProjection: React.FC = () => {
   });
 
   // --- Derived Metrics ---
-  const [metrics, setMetrics] = useState<any>({ savings: 0, isCheaper: false });
+  // Fix: Initialize all properties to avoid undefined access during first render
+  const [metrics, setMetrics] = useState<any>({ 
+    savings: 0, 
+    isCheaper: false,
+    monoCost: 0,
+    microCost: 0
+  });
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
@@ -91,7 +97,7 @@ const ResourceProjection: React.FC = () => {
             <div key={index} className="flex items-center justify-between gap-4 mb-1" style={{ color: entry.color }}>
               <span className="capitalize">{entry.name}:</span>
               <span className="font-mono font-bold">
-                {unit === '$' ? '$' : ''}{entry.value.toLocaleString()}{unit !== '$' ? ` ${unit}` : ''}
+                {unit === '$' ? '$' : ''}{(entry.value || 0).toLocaleString()}{unit !== '$' ? ` ${unit}` : ''}
               </span>
             </div>
           ))}
@@ -118,7 +124,7 @@ const ResourceProjection: React.FC = () => {
              <div className="flex flex-col leading-none">
                 <span className="text-[10px] text-slate-400 uppercase font-bold">{metrics.isCheaper ? 'Est. Savings' : 'Cost Increase'}</span>
                 <span className={`text-sm font-bold font-mono ${metrics.isCheaper ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  ${metrics.savings.toLocaleString()}<span className="text-[10px] font-sans text-slate-500 font-normal">/mo</span>
+                  ${(metrics.savings || 0).toLocaleString()}<span className="text-[10px] font-sans text-slate-500 font-normal">/mo</span>
                 </span>
              </div>
           </div>
@@ -142,7 +148,7 @@ const ResourceProjection: React.FC = () => {
              <div className="p-4 flex items-center justify-between group">
                 <div>
                    <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Server size={12}/> Current Spend</p>
-                   <p className="text-xl font-bold text-white group-hover:text-rose-400 transition-colors">${metrics.monoCost.toLocaleString()}</p>
+                   <p className="text-xl font-bold text-white group-hover:text-rose-400 transition-colors">${(metrics.monoCost || 0).toLocaleString()}</p>
                 </div>
                 <div className="text-right opacity-50">
                    <p className="text-[10px] text-slate-500">Nodes</p>
@@ -152,7 +158,7 @@ const ResourceProjection: React.FC = () => {
              <div className="p-4 flex items-center justify-between group">
                 <div>
                    <p className="text-xs text-slate-500 mb-1 flex items-center gap-1"><Cpu size={12}/> Projected Spend</p>
-                   <p className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors">${metrics.microCost.toLocaleString()}</p>
+                   <p className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors">${(metrics.microCost || 0).toLocaleString()}</p>
                 </div>
                 <div className="text-right opacity-50">
                    <p className="text-[10px] text-slate-500">Services</p>

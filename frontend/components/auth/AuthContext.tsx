@@ -1,169 +1,93 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../../types';
-import { authService } from '../../services/authService';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "@/services/authService";
+import axiosInstance from "@/services/axiosInstance";
+import { User } from "@/types/types";
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
+  loading: boolean;
   loginWithGithub: () => Promise<void>;
-  loginWithEmail: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const checkSession = async () => {
-       const storedUser = localStorage.getItem('trunk_user');
-       const urlUser = authService.getUserFromUrl();
-       
-       if (urlUser) {
-          setUser(urlUser);
-          localStorage.setItem('trunk_user', JSON.stringify(urlUser));
-       } else if (storedUser) {
-         // Fallback to local storage
-         setUser(JSON.parse(storedUser));
-       } else {
-         // Try fetching current user from backend (useful when backend set HttpOnly cookie/session)
-         try {
-           const current = await authService.fetchCurrentUser();
-           if (current) {
-             setUser(current);
-             localStorage.setItem('trunk_user', JSON.stringify(current));
-           }
-         } catch (err) {
-           console.warn('fetchCurrentUser failed', err);
-         }
-       }
-       
-       setIsLoading(false);
-    };
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) setUser(JSON.parse(savedUser));
 
-    checkSession();
+    setLoading(false);
   }, []);
+  const login = async (email: string, password: string) => {
+    const tokens = await authService.login(email, password);
 
-  const loginWithGithub = async () => {
-    setIsLoading(true);
-    try {
-      const res = await authService.loginWithGithub();
+    localStorage.setItem("accessToken", tokens.accessToken);
+    localStorage.setItem("refreshToken", tokens.refreshToken);
+    const profile = await authService.getProfile();
 
-      // backend may return { data: { url: '...' } } or { url: '...' }
-      const target = res?.data?.url ?? res?.url;
-      if (target) {
-        window.location.href = target;
-      } else {
-        console.error('No redirect URL returned from auth endpoint', res);
-        alert('Login failed: no redirect URL returned');
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Failed to start GitHub login', error);
-      alert('Failed to initiate login.');
-      setIsLoading(false);
-    }
+    // Lưu user
+    localStorage.setItem("user", JSON.stringify(profile));
+    setUser(profile);
   };
 
-  const loginWithEmail = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-  const res = await authService.loginWithEmail(email, password);
-  // normalize nested response shapes: { success, data: { ... } } or direct payload
-  const body = res?.data ?? res;
-  const payload = body?.data ?? body;
-  const possibleUser = payload?.user ?? payload;
-  if (payload?.accessToken) {
-        try {
-          localStorage.setItem('accessToken', payload.accessToken);
-          if (payload.refreshToken) localStorage.setItem('refreshToken', payload.refreshToken);
+  const register = async (email: string, password: string, name: string) => {
+    await authService.register(email, password, name);
+    await login(email, password);
+  };
 
-          // decode JWT payload without extra dependency
-          const parseJwt = (token: string) => {
-            try {
-              const payload = token.split('.')[1];
-              const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-              return JSON.parse(decodeURIComponent(escape(json)));
-            } catch (e) {
-              console.warn('Failed to parse JWT', e);
-              return null;
-            }
-          };
+  const loginWithGithub = async () => {
+    const data = await authService.loginWithGithub();
 
-          const payloadFromToken = parseJwt(payload.accessToken);
-          const derivedUser = payloadFromToken
-            ? {
-                id: payloadFromToken.id ?? payloadFromToken.sub,
-                name: payloadFromToken.name ?? payloadFromToken.username ?? payloadFromToken.sub,
-                email: payloadFromToken.email,
-                avatar: payloadFromToken.avatar ?? '',
-                role: payloadFromToken.role ?? 'developer',
-              }
-            : null;
-
-          if (derivedUser) {
-            setUser(derivedUser as User);
-            localStorage.setItem('trunk_user', JSON.stringify(derivedUser));
-          } else {
-            // fallback: if backend also provides a user object inside res
-            const returnedUser = payload?.user ?? null;
-            if (returnedUser) {
-              setUser(returnedUser);
-              localStorage.setItem('trunk_user', JSON.stringify(returnedUser));
-            } else {
-              // If we only got tokens (no user in token payload and no user object),
-              // attempt to fetch the current user from the backend using the stored token.
-              try {
-                const fetched = await authService.fetchCurrentUser();
-                if (fetched) {
-                  setUser(fetched);
-                  localStorage.setItem('trunk_user', JSON.stringify(fetched));
-                }
-              } catch (e) {
-                console.warn('Failed to fetch user after token login', e);
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Failed to handle token response', err);
-        }
-      } else if (possibleUser && (possibleUser.id || possibleUser.email)) {
-        // Received user object directly
-        setUser(possibleUser as User);
-        localStorage.setItem('trunk_user', JSON.stringify(possibleUser));
-      } else {
-        console.error('No user returned from email login', res);
-        alert('Login failed: no user returned');
-      }
-    } catch (err) {
-      console.error('Email login failed', err);
-      alert('Login failed');
-    } finally {
-      setIsLoading(false);
-    }
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
   };
 
   const logout = () => {
+    // notify backend if supported, ignore errors
+    try {
+      // authService.logout may be undefined depending on backend support
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-explicit-any
+      (authService as any).logout?.();
+    } catch (_) {}
+
+    localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     setUser(null);
-    localStorage.removeItem('trunk_user');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    try {
+      if (axiosInstance?.defaults?.headers?.common) {
+        delete axiosInstance.defaults.headers.common["Authorization"];
+      }
+    } catch (_) {}
+    // navigate to login page
+    try {
+      navigate("/login", { replace: true });
+    } catch (_) {}
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, loginWithGithub, loginWithEmail, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, loginWithGithub, login, register, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
 };
