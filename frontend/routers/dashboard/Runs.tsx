@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Filter, Sliders } from "lucide-react";
 import RunTable from "../../components/RunTable";
 import { Run, Status } from "../../types/types";
+import { pipelineService, projectService } from "../../services";
 
 interface RunsProps {
   runs: Run[];
@@ -9,8 +10,62 @@ interface RunsProps {
   onRunSelect: (run: Run) => void;
 }
 
-const Runs: React.FC<RunsProps> = ({ runs, searchQuery, onRunSelect }) => {
+const Runs: React.FC<RunsProps> = ({
+  runs: initialRuns,
+  searchQuery,
+  onRunSelect,
+}) => {
   const [statusFilter, setStatusFilter] = useState<"ALL" | Status>("ALL");
+  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState<string>("ALL");
+
+  useEffect(() => {
+    loadRunsData();
+  }, []);
+
+  const loadRunsData = async () => {
+    try {
+      setLoading(true);
+      const [pipelineData, projectData] = await Promise.all([
+        pipelineService.getList({ limit: 100, offset: 0 }),
+        projectService.getAll({ limit: 50, offset: 0 }),
+      ]);
+
+      setPipelines(pipelineData?.data || pipelineData || []);
+      setProjects(projectData || []);
+    } catch (error) {
+      console.error("Failed to load runs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const runs: Run[] = pipelines.map((p) => ({
+    id: p.id,
+    branch: p.branch || "main",
+    commitMessage: p.commit_message || "No message",
+    author: p.author || "Unknown",
+    status:
+      p.status === "success"
+        ? Status.SUCCESS
+        : p.status === "failed"
+          ? Status.FAILURE
+          : p.status === "running"
+            ? Status.RUNNING
+            : p.status === "pending"
+              ? Status.QUEUED
+              : Status.QUEUED,
+    duration: p.duration ? formatDuration(p.duration) : "0m 0s",
+    startedAt: p.started_at || p.createdAt,
+  }));
 
   const filteredRuns = runs.filter((run) => {
     const matchesSearch =

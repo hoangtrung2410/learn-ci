@@ -9,6 +9,9 @@ import { UserModule } from './modules/user/user.module';
 import { TokenModule } from './modules/token/token.module';
 import { HealthCheckerModule } from './modules/health-checker/health-checker.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { PipelineModule } from './modules/pipeline/pipeline.module';
+import { AnalysisModule } from './modules/analysis/analysis.module';
+import { ArchitectureModule } from './modules/architecture/architecture.module';
 
 @Module({
   imports: [
@@ -25,6 +28,9 @@ import { ProjectsModule } from './modules/projects/projects.module';
     AuthModule,
     TokenModule,
     ProjectsModule,
+    PipelineModule,
+    AnalysisModule,
+    ArchitectureModule,
     HealthCheckerModule,
   ],
   providers: [

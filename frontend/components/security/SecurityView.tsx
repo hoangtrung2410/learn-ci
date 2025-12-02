@@ -12,18 +12,15 @@ import {
 } from "lucide-react";
 import { Token } from "../../types/types";
 import { tokenService } from "../../services/tokenService";
-import TokenModal from "../../routers/TokenModal";
+import TokenModal from "../../routers/tokens/TokenModal";
 
 const SecurityView: React.FC = () => {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<Token | null>(null);
 
-  // Fetch Tokens
   const fetchTokens = async () => {
     setIsLoading(true);
     setError(null);

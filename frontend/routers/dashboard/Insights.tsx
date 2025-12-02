@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Radar,
   RadarChart,
@@ -15,14 +15,163 @@ import {
   CheckCircle,
   Zap,
 } from "lucide-react";
-import {
-  DORA_METRICS,
-  ARCHITECTURE_SCENARIOS,
-  STRATEGIC_RECOMMENDATIONS,
-} from "../../constants";
+import { analysisService } from "../../services";
 import { DoraMetric } from "../../types/types";
 
 const Insights: React.FC = () => {
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [comparisonAnalysis, setComparisonAnalysis] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadInsightsData();
+  }, []);
+
+  const loadInsightsData = async () => {
+    try {
+      setLoading(true);
+
+      // Load latest performance analysis
+      const perfAnalysis = await analysisService.getLatestAnalysis(
+        undefined,
+        "PROJECT_PERFORMANCE"
+      );
+      setAnalysis(perfAnalysis);
+
+      // Load architecture comparison
+      const compAnalysis = await analysisService.getLatestAnalysis(
+        undefined,
+        "ARCHITECTURE_COMPARISON"
+      );
+      setComparisonAnalysis(compAnalysis);
+    } catch (error) {
+      console.error("Failed to load insights:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatus = (
+    value: number,
+    thresholds: { healthy: number; warning: number }
+  ): DoraMetric["status"] => {
+    if (value <= thresholds.healthy) return "healthy";
+    if (value <= thresholds.warning) return "warning";
+    return "critical";
+  };
+
+  const doraMetrics = analysis?.metrics?.dora
+    ? [
+        {
+          id: "df",
+          label: "Deployment Frequency",
+          value: `${parseFloat(analysis.metrics.dora.deployment_frequency).toFixed(1)}/day`,
+          target: "1+/day",
+          status: getStatus(
+            parseFloat(analysis.metrics.dora.deployment_frequency),
+            { healthy: 5, warning: 1 }
+          ),
+        },
+        {
+          id: "lt",
+          label: "Lead Time",
+          value: `${analysis.metrics.dora.lead_time_for_changes}h`,
+          target: "< 24h",
+          status: getStatus(analysis.metrics.dora.lead_time_for_changes, {
+            healthy: 24,
+            warning: 48,
+          }),
+        },
+        {
+          id: "cfr",
+          label: "Change Failure Rate",
+          value: `${parseFloat(analysis.metrics.dora.change_failure_rate).toFixed(1)}%`,
+          target: "< 15%",
+          status: getStatus(
+            parseFloat(analysis.metrics.dora.change_failure_rate),
+            { healthy: 15, warning: 30 }
+          ),
+        },
+        {
+          id: "mttr",
+          label: "Mean Time to Recover",
+          value: `${analysis.metrics.dora.mean_time_to_recovery}m`,
+          target: "< 60m",
+          status: getStatus(analysis.metrics.dora.mean_time_to_recovery, {
+            healthy: 60,
+            warning: 120,
+          }),
+        },
+      ]
+    : [];
+
+  // Architecture comparison radar data
+  const architectureData = comparisonAnalysis?.comparison_data
+    ? [
+        {
+          attribute: "Deploy Frequency",
+          monolith:
+            (comparisonAnalysis.comparison_data.monolithic
+              .avg_deployment_frequency /
+              20) *
+            100,
+          microservices:
+            (comparisonAnalysis.comparison_data.microservices
+              .avg_deployment_frequency /
+              20) *
+            100,
+        },
+        {
+          attribute: "Build Speed",
+          monolith:
+            100 -
+            (comparisonAnalysis.comparison_data.monolithic.avg_build_time /
+              600) *
+              100,
+          microservices:
+            100 -
+            (comparisonAnalysis.comparison_data.microservices.avg_build_time /
+              600) *
+              100,
+        },
+        {
+          attribute: "Success Rate",
+          monolith:
+            comparisonAnalysis.comparison_data.monolithic.avg_success_rate,
+          microservices:
+            comparisonAnalysis.comparison_data.microservices.avg_success_rate,
+        },
+        {
+          attribute: "Recovery Time",
+          monolith:
+            100 -
+            (comparisonAnalysis.comparison_data.monolithic.avg_recovery_time /
+              300) *
+              100,
+          microservices:
+            100 -
+            (comparisonAnalysis.comparison_data.microservices
+              .avg_recovery_time /
+              300) *
+              100,
+        },
+        {
+          attribute: "Lead Time",
+          monolith:
+            100 -
+            (comparisonAnalysis.comparison_data.monolithic.avg_lead_time / 72) *
+              100,
+          microservices:
+            100 -
+            (comparisonAnalysis.comparison_data.microservices.avg_lead_time /
+              72) *
+              100,
+        },
+      ]
+    : [];
+
+  const recommendations = analysis?.recommendations || [];
+
   const getStatusColor = (status: DoraMetric["status"]) => {
     switch (status) {
       case "healthy":
@@ -69,7 +218,7 @@ const Insights: React.FC = () => {
 
       {/* DORA Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {DORA_METRICS.map((metric) => (
+        {doraMetrics.map((metric) => (
           <div
             key={metric.id}
             className={`p-5 rounded-lg border flex flex-col justify-between ${getStatusColor(metric.status)} bg-opacity-5`}
@@ -110,7 +259,7 @@ const Insights: React.FC = () => {
                 cx="50%"
                 cy="50%"
                 outerRadius="80%"
-                data={ARCHITECTURE_SCENARIOS}
+                data={architectureData}
               >
                 <PolarGrid stroke="#3f3f46" />
                 <PolarAngleAxis
@@ -153,24 +302,25 @@ const Insights: React.FC = () => {
           </div>
 
           <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
-            {STRATEGIC_RECOMMENDATIONS.map((rec) => (
+            {recommendations.map((rec: any, index: number) => (
               <div
-                key={rec.id}
+                key={index}
                 className="p-4 rounded-lg bg-surfaceHighlight/30 border border-border hover:border-slate-600 transition-colors group"
               >
                 <div className="flex justify-between items-start mb-2">
                   <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${rec.category === "Architecture"
+                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                      rec.category === "architecture"
                         ? "bg-indigo-500/20 text-indigo-300"
-                        : rec.category === "Infrastructure"
+                        : rec.category === "build" || rec.category === "cache"
                           ? "bg-emerald-500/20 text-emerald-300"
                           : "bg-amber-500/20 text-amber-300"
-                      }`}
+                    }`}
                   >
                     {rec.category}
                   </span>
                   <span className="text-[10px] font-mono text-slate-500">
-                    Impact: {rec.impact}
+                    Priority: {rec.priority}
                   </span>
                 </div>
                 <h4 className="text-sm font-medium text-white mb-1 group-hover:text-primary transition-colors">
@@ -180,11 +330,13 @@ const Insights: React.FC = () => {
                   {rec.description}
                 </p>
                 <div className="pt-3 border-t border-white/5">
-                  <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
-                    <span>Recommendation:</span>
-                    <span className="text-slate-300 font-normal">
-                      {rec.action}
-                    </span>
+                  <div className="flex items-center gap-1.5 text-xs mb-1">
+                    <span className="text-primary font-medium">Impact:</span>
+                    <span className="text-slate-300">{rec.impact}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-primary font-medium">Effort:</span>
+                    <span className="text-slate-300">{rec.effort}</span>
                   </div>
                 </div>
               </div>

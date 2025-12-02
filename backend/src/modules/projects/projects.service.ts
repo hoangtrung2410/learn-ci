@@ -24,14 +24,18 @@ export class ProjectsService {
       const token = await this.tokenRepository.findOne({
         where: { id: data.tokenId },
       });
-      const entity = this.projectRepository.create({
-        name: data.name,
-        description: data.description,
-        url_organization: data.url_organization,
-        token,
-      } as any) as any;
 
-      return (await this.projectRepository.save(entity)) as ProjectEntity;
+      if (!token) {
+        throw new NotFoundException(`Token with ID ${data.tokenId} not found`);
+      }
+
+      const project = new ProjectEntity();
+      project.name = data.name;
+      project.description = data.description;
+      project.url_organization = data.url_organization;
+      project.token_id = data.tokenId;
+
+      return await this.projectRepository.save(project);
     } catch (error) {
       this.logger.error(error?.stack);
       throw error;
@@ -54,9 +58,14 @@ export class ProjectsService {
             `Token with ID ${data.tokenId} not found`,
           );
         }
-        (data as any).token = token;
+        project.token_id = data.tokenId;
       }
-      Object.assign(project, data);
+
+      if (data.name) project.name = data.name;
+      if (data.description) project.description = data.description;
+      if (data.url_organization)
+        project.url_organization = data.url_organization;
+
       return await this.projectRepository.save(project);
     } catch (error) {
       this.logger.error(error?.stack);
@@ -78,7 +87,7 @@ export class ProjectsService {
     this.logger.log(`Getting project ${id}`);
     return this.projectRepository.findOne({
       where: { id },
-      relations: ['tokens'],
+      relations: ['token', 'pipelines', 'analyses'],
     });
   }
 

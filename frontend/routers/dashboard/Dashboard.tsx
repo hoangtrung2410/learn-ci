@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -14,7 +14,12 @@ import MetricsCard from "../../components/MetricsCard";
 import DoraMetrics from "../../components/DoraMetrics";
 import RunTable from "../../components/RunTable";
 import { Run, Status } from "../../types/types";
-import { MOCK_CHART_DATA } from "../../constants";
+import {
+  pipelineService,
+  analysisService,
+  projectService,
+} from "../../services";
+import type { PipelineStatistics } from "../../services";
 
 interface DashboardProps {
   runs: Run[];
@@ -23,10 +28,101 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
-  runs,
+  runs: initialRuns,
   onRunSelect,
   setActivePage,
 }) => {
+  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [statistics, setStatistics] = useState<PipelineStatistics | null>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Load pipelines
+      const pipelineData = await pipelineService.getList({
+        limit: 50,
+        offset: 0,
+      });
+      setPipelines(pipelineData?.data || pipelineData || []);
+
+      // Load statistics
+      const stats = await pipelineService.getStatistics();
+      setStatistics(stats);
+
+      // Load projects
+      const projectsData = await projectService.getAll({
+        limit: 10,
+        offset: 0,
+      });
+      setProjects(projectsData || []);
+
+      // Generate chart data from last 7 days
+      generateChartData(pipelineData?.data || pipelineData || []);
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateChartData = (pipelinesData: any[]) => {
+    const last7Days = [];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+
+      const dayPipelines = pipelinesData.filter((p) => {
+        const pDate = new Date(p.started_at || p.createdAt);
+        return pDate.toDateString() === date.toDateString();
+      });
+
+      last7Days.push({
+        name: dateStr,
+        success: dayPipelines.filter((p) => p.status === "success").length,
+        failure: dayPipelines.filter((p) => p.status === "failed").length,
+      });
+    }
+
+    setChartData(last7Days);
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const runs = pipelines.map((p) => ({
+    id: p.id,
+    branch: p.branch || "main",
+    commitMessage: p.commit_message || "No message",
+    author: p.author || "Unknown",
+    status:
+      p.status === "success"
+        ? Status.SUCCESS
+        : p.status === "failed"
+          ? Status.FAILURE
+          : p.status === "running"
+            ? Status.RUNNING
+            : Status.QUEUED,
+    duration: p.duration ? formatDuration(p.duration) : "0m 0s",
+    startedAt: p.started_at || p.createdAt,
+  }));
+
   return (
     <div className="space-y-6 animate-fade-in pb-10">
       {/* Section: DORA Engine */}
@@ -46,33 +142,37 @@ const Dashboard: React.FC<DashboardProps> = ({
           <MetricsCard
             metric={{
               label: "Pass Rate",
-              value: "94.2%",
+              value: statistics
+                ? `${statistics.success_rate.toFixed(1)}%`
+                : "0%",
               change: 2.5,
               trend: "up",
             }}
           />
           <MetricsCard
             metric={{
-              label: "P95 Duration",
-              value: "4m 12s",
+              label: "Avg Duration",
+              value: statistics
+                ? formatDuration(Math.floor(statistics.average_duration))
+                : "0m 0s",
               change: -12,
               trend: "up",
             }}
           />
           <MetricsCard
             metric={{
-              label: "Weekly Runs",
-              value: runs.length.toString(),
+              label: "Total Runs",
+              value: statistics
+                ? statistics.total.toString()
+                : runs.length.toString(),
               change: 8.4,
               trend: "up",
             }}
           />
           <MetricsCard
             metric={{
-              label: "Active Issues",
-              value: runs
-                .filter((r) => r.status === Status.FAILURE)
-                .length.toString(),
+              label: "Failed Runs",
+              value: statistics ? statistics.failed_count.toString() : "0",
               change: 5,
               trend: "down",
             }}
@@ -98,7 +198,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={MOCK_CHART_DATA} barSize={20}>
+              <BarChart data={chartData} barSize={20}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="#27272a"
