@@ -25,7 +25,6 @@ export class ProjectEntity extends AbstractEntity {
   @Column({ type: 'uuid', nullable: true })
   architecture_id?: string;
 
-  // Many projects can use one token
   @ManyToOne(() => TokenEntity, (token) => token.projects, { nullable: true })
   @JoinColumn({ name: 'token_id' })
   token?: TokenEntity;
@@ -38,12 +37,6 @@ export class ProjectEntity extends AbstractEntity {
 
   @Column({ type: 'text', nullable: true })
   github_webhook_url?: string;
-
-  // @Column({ type: 'text', nullable: true })
-  // github_webhook_secret?: string;
-
-  // @Column({ type: 'text', nullable: true })
-  // github_webhook_events?: string;
 
   @Column({ type: 'boolean', default: false })
   github_webhook_active?: boolean;

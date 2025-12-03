@@ -1,6 +1,10 @@
 import axiosInstance from "./axiosInstance";
 
 export type AnalysisType =
+  | "performance"
+  | "architecture"
+  | "optimization"
+  | "comparison"
   | "PROJECT_PERFORMANCE"
   | "ARCHITECTURE_COMPARISON"
   | "COST_ANALYSIS"

@@ -59,9 +59,17 @@ export interface Token {
 export interface Project {
   id: string;
   name: string;
-  description: string;
-  url_organization: string;
-  token: Token;
+  description?: string;
+  url_organization?: string;
+  architecture_id?: string;
+  token?: Token;
+  token_id?: string;
+  github_webhook_id?: number;
+  github_webhook_url?: string;
+  github_webhook_active?: boolean;
+  github_webhook_created_at?: string | Date;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
   status?: string;
 }
 

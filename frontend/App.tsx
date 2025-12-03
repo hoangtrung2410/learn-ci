@@ -184,9 +184,8 @@ const AuthenticatedApp: React.FC = () => {
         {/* Top Navbar */}
         <header className="h-16 border-b border-border bg-background/95 backdrop-blur z-20 px-6 flex items-center justify-between sticky top-0">
           <div className="flex items-center gap-4">
-            <h1 className="text-sm font-semibold text-slate-300">
-              Dashboard /{" "}
-              <span className="text-white capitalize">{activePage}</span>
+            <h1 className="text-2xl font-bold text-white uppercase tracking-wide">
+              {activePage}
             </h1>
           </div>
 

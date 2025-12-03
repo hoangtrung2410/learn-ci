@@ -17,11 +17,19 @@ export interface UpdateProjectDto {
   status?: string;
 }
 
+export interface ProjectsResponse {
+  projects: Project[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const projectService = {
   /**
    * Get all projects with pagination
    */
-  getAll: async (params?: PaginationDto): Promise<Project[]> => {
+  getAll: async (params?: PaginationDto): Promise<ProjectsResponse> => {
     try {
       const resp = await axiosInstance.get("/projects", { params });
       return resp.data?.data ?? resp.data;

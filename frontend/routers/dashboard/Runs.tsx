@@ -23,18 +23,29 @@ const Runs: React.FC<RunsProps> = ({
 
   useEffect(() => {
     loadRunsData();
-  }, []);
+  }, [selectedProject]);
 
   const loadRunsData = async () => {
     try {
       setLoading(true);
-      const [pipelineData, projectData] = await Promise.all([
-        pipelineService.getList({ limit: 100, offset: 0 }),
-        projectService.getAll({ limit: 50, offset: 0 }),
-      ]);
 
+      // Load projects first
+      const projectData = await projectService.getAll({ limit: 50, offset: 0 });
+      const projectsList = Array.isArray(projectData)
+        ? projectData
+        : Array.isArray(projectData.projects)
+          ? projectData.projects
+          : [];
+      setProjects(projectsList);
+
+      // Load pipelines with optional project filter
+      const pipelineParams: any = { limit: 100, offset: 0 };
+      if (selectedProject !== "ALL") {
+        pipelineParams.project_id = selectedProject;
+      }
+
+      const pipelineData = await pipelineService.getList(pipelineParams);
       setPipelines(pipelineData?.data || pipelineData || []);
-      setProjects(projectData || []);
     } catch (error) {
       console.error("Failed to load runs:", error);
     } finally {
@@ -99,29 +110,58 @@ const Runs: React.FC<RunsProps> = ({
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-surface border border-border rounded-lg p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
-          <button
-            onClick={() => setStatusFilter("ALL")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === "ALL" ? "bg-primary text-white" : "bg-background text-slate-400 hover:text-white"}`}
-          >
-            All Runs
-          </button>
-          <button
-            onClick={() => setStatusFilter(Status.FAILURE)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === Status.FAILURE ? "bg-error text-white" : "bg-background text-slate-400 hover:text-white"}`}
-          >
-            Failures
-          </button>
-          <button
-            onClick={() => setStatusFilter(Status.SUCCESS)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === Status.SUCCESS ? "bg-success text-white" : "bg-background text-slate-400 hover:text-white"}`}
-          >
-            Success
-          </button>
+      <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          {/* Project Filter */}
+          <div className="w-full md:w-64">
+            <label className="block text-xs font-medium text-slate-400 mb-2">
+              Filter by Project
+            </label>
+            <select
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+              className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-white focus:border-primary focus:outline-none transition-colors"
+            >
+              <option value="ALL">All Projects</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-slate-400 mb-2">
+              Filter by Status
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto">
+              <button
+                onClick={() => setStatusFilter("ALL")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${statusFilter === "ALL" ? "bg-primary text-white" : "bg-background text-slate-400 hover:text-white"}`}
+              >
+                All Runs
+              </button>
+              <button
+                onClick={() => setStatusFilter(Status.FAILURE)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${statusFilter === Status.FAILURE ? "bg-error text-white" : "bg-background text-slate-400 hover:text-white"}`}
+              >
+                Failures
+              </button>
+              <button
+                onClick={() => setStatusFilter(Status.SUCCESS)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${statusFilter === Status.SUCCESS ? "bg-success text-white" : "bg-background text-slate-400 hover:text-white"}`}
+              >
+                Success
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="text-xs text-slate-500">
+
+        <div className="text-xs text-slate-500 pt-2 border-t border-border">
           Showing {filteredRuns.length} runs
+          {selectedProject !== "ALL" && " for selected project"}
         </div>
       </div>
 

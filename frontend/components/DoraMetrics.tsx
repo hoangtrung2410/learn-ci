@@ -2,25 +2,33 @@ import React, { useEffect, useState } from "react";
 import { Timer, Activity, AlertTriangle, TrendingDown } from "lucide-react";
 import { analysisService } from "../services";
 
-const DoraMetrics: React.FC = () => {
+interface DoraMetricsProps {
+  projectId?: string;
+}
+
+const DoraMetrics: React.FC<DoraMetricsProps> = ({ projectId }) => {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDoraMetrics();
-  }, []);
+  }, [projectId]);
 
   const loadDoraMetrics = async () => {
     try {
       const analysis = await analysisService.getLatestAnalysis(
-        undefined,
-        "PROJECT_PERFORMANCE"
+        projectId && projectId !== "ALL" ? projectId : undefined,
+        "performance"
       );
       if (analysis && analysis.metrics?.dora) {
         setMetrics(analysis.metrics.dora);
+      } else {
+        setMetrics(null);
       }
     } catch (error) {
       console.error("Failed to load DORA metrics:", error);
+      // Set empty metrics on error to prevent crashes
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
@@ -45,9 +53,9 @@ const DoraMetrics: React.FC = () => {
       target: "1+/day",
       status: metrics
         ? getStatus(parseFloat(metrics.deployment_frequency), {
-            healthy: 5,
-            warning: 1,
-          })
+          healthy: 5,
+          warning: 1,
+        })
         : "healthy",
       description: "How often code is deployed to production",
     },
@@ -70,9 +78,9 @@ const DoraMetrics: React.FC = () => {
       target: "< 15%",
       status: metrics
         ? getStatus(parseFloat(metrics.change_failure_rate), {
-            healthy: 15,
-            warning: 30,
-          })
+          healthy: 15,
+          warning: 30,
+        })
         : "healthy",
       description: "Percentage of deployments causing failures",
     },
@@ -83,9 +91,9 @@ const DoraMetrics: React.FC = () => {
       target: "< 60m",
       status: metrics
         ? getStatus(metrics.mean_time_to_recovery, {
-            healthy: 60,
-            warning: 120,
-          })
+          healthy: 60,
+          warning: 120,
+        })
         : "healthy",
       description: "Average time to recover from failures",
     },
@@ -138,13 +146,12 @@ const DoraMetrics: React.FC = () => {
               </span>
             </div>
             <span
-              className={`w-2 h-2 rounded-full ${
-                metric.status === "healthy"
-                  ? "bg-emerald-500"
-                  : metric.status === "warning"
-                    ? "bg-amber-500"
-                    : "bg-rose-500"
-              }`}
+              className={`w-2 h-2 rounded-full ${metric.status === "healthy"
+                ? "bg-emerald-500"
+                : metric.status === "warning"
+                  ? "bg-amber-500"
+                  : "bg-rose-500"
+                }`}
             ></span>
           </div>
 

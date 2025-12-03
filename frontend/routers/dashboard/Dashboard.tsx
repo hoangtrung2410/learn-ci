@@ -37,32 +37,34 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>("ALL");
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [selectedProject]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
 
-      // Load pipelines
-      const pipelineData = await pipelineService.getList({
+      // Load projects
+      const projectsData = await projectService.getAll({
         limit: 50,
         offset: 0,
       });
+      setProjects(Array.isArray(projectsData) ? projectsData : projectsData.projects || []);
+
+      // Load pipelines with optional project filter
+      const pipelineParams: any = { limit: 50, offset: 0 };
+      if (selectedProject !== "ALL") {
+        pipelineParams.project_id = selectedProject;
+      }
+      const pipelineData = await pipelineService.getList(pipelineParams);
       setPipelines(pipelineData?.data || pipelineData || []);
 
-      // Load statistics
-      const stats = await pipelineService.getStatistics();
+      // Load statistics with optional project filter
+      const stats = await pipelineService.getStatistics(selectedProject !== "ALL" ? selectedProject : undefined);
       setStatistics(stats);
-
-      // Load projects
-      const projectsData = await projectService.getAll({
-        limit: 10,
-        offset: 0,
-      });
-      setProjects(projectsData || []);
 
       // Generate chart data from last 7 days
       generateChartData(pipelineData?.data || pipelineData || []);
@@ -125,12 +127,38 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
+      {/* Project Filter */}
+      <div className="bg-surface border border-border rounded-lg p-4">
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-slate-400 whitespace-nowrap">
+            Filter by Project:
+          </label>
+          <select
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(e.target.value)}
+            className="flex-1 max-w-xs bg-background border border-border rounded px-3 py-2 text-sm text-white focus:border-primary focus:outline-none transition-colors"
+          >
+            <option value="ALL">All Projects</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+          {selectedProject !== "ALL" && (
+            <span className="text-xs text-slate-500">
+              Showing data for selected project only
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Section: DORA Engine */}
       <div>
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
           DORA Metrics Engine
         </h2>
-        <DoraMetrics />
+        <DoraMetrics projectId={selectedProject} />
       </div>
 
       {/* Section: Real-time Stats */}
@@ -142,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <MetricsCard
             metric={{
               label: "Pass Rate",
-              value: statistics
+              value: statistics?.success_rate
                 ? `${statistics.success_rate.toFixed(1)}%`
                 : "0%",
               change: 2.5,
@@ -162,7 +190,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <MetricsCard
             metric={{
               label: "Total Runs",
-              value: statistics
+              value: statistics?.total
                 ? statistics.total.toString()
                 : runs.length.toString(),
               change: 8.4,
@@ -172,7 +200,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <MetricsCard
             metric={{
               label: "Failed Runs",
-              value: statistics ? statistics.failed_count.toString() : "0",
+              value: statistics?.failed_count?.toString() || "0",
               change: 5,
               trend: "down",
             }}

@@ -25,11 +25,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
 
   const menuItems = [
     { id: "dashboard", label: "Overview", icon: LayoutGrid },
-    { id: "projects", label: "Projects", icon: FolderGit },
     { id: "runs", label: "Workflow Runs", icon: Activity },
-    { id: "insights", label: "Insights", icon: PieChart },
-    { id: "optimizer", label: "System Optimizer", icon: Cpu },
-    { id: "branches", label: "Branches", icon: GitBranch },
+    // { id: "insights", label: "Insights", icon: PieChart },
+    // { id: "optimizer", label: "System Optimizer", icon: Cpu },
+    // { id: "branches", label: "Branches", icon: GitBranch },
+    { id: "projects", label: "Projects", icon: FolderGit },
     { id: "security", label: "Security", icon: ShieldAlert },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -50,22 +50,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
 
       {/* Organization Switcher Context */}
       <div className="px-4 py-4">
-        <button className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-200 bg-background border border-border rounded-lg hover:border-slate-600 transition-colors">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-indigo-500 flex items-center justify-center text-[10px] text-white font-bold">
-              A
-            </div>
-            <span>CI/CD</span>
-          </div>
-          <ChevronDown size={14} className="text-slate-500" />
-        </button>
+
       </div>
 
-      <div className="px-4 pb-2">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider pl-3 mb-2">
-          Platform
-        </p>
-      </div>
 
       <nav className="flex-1 px-2 space-y-0.5">
         {menuItems.map((item) => {
@@ -80,13 +67,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                 const path = item.id === "dashboard" ? "/home" : `/${item.id}`;
                 try {
                   navigate(path);
-                } catch (_) {}
+                } catch (_) { }
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 group relative ${
-                isActive
-                  ? "bg-surfaceHighlight text-white"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-surfaceHighlight/50"
-              }`}
+              className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 group relative ${isActive
+                ? "bg-surfaceHighlight text-white"
+                : "text-slate-400 hover:text-slate-200 hover:bg-surfaceHighlight/50"
+                }`}
             >
               <Icon
                 size={18}

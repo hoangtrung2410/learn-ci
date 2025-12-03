@@ -20,7 +20,7 @@ export class ProjectsService {
     private readonly projectRepository: ProjectRepository,
     private readonly tokenRepository: TokenRepository,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async create(data: CreateProjectDto): Promise<ProjectEntity> {
     this.logger.log(`Creating project ${data.name}`);
@@ -41,12 +41,10 @@ export class ProjectsService {
       const project = new ProjectEntity();
       project.name = data.name;
       project.description = data.description;
-      project.url_organization = data.url_organization; // repo hoặc org URL
+      project.url_organization = data.url_organization;
       project.token_id = token.id;
 
       const createdProject = await this.projectRepository.save(project);
-
-      // 🔥 Đây là điểm quan trọng nhất – truyền project + token
       await this.createGitHubWebhook(createdProject, token.token);
 
       return createdProject;
@@ -148,7 +146,6 @@ export class ProjectsService {
       }
 
       const webhookUrl = `${this.configService.get('app.url')}/api/v1/webhooks/github`;
-      this.logger.log(`🔗 Webhook URL: ${webhookUrl}`);
       const isOrgCheck = await fetch(`https://api.github.com/orgs/${orgName}`, {
         headers: {
           Authorization: `token ${token}`,
@@ -162,8 +159,8 @@ export class ProjectsService {
         );
         throw new BadRequestException(
           `"${orgName}" is not a valid GitHub Organization. ` +
-            'Organization webhooks can only be created for GitHub Organizations (not personal accounts). ' +
-            'If this is a personal account, you need to specify a repository URL instead.',
+          'Organization webhooks can only be created for GitHub Organizations (not personal accounts). ' +
+          'If this is a personal account, you need to specify a repository URL instead.',
         );
       }
       const events = [
@@ -200,7 +197,7 @@ export class ProjectsService {
         if (error.message?.includes('Not Found')) {
           throw new BadRequestException(
             'Organization not found or token does not have admin:org_hook permission. ' +
-              'Make sure your token has "admin:org_hook" scope and the organization name is correct.',
+            'Make sure your token has "admin:org_hook" scope and the organization name is correct.',
           );
         }
         throw new BadRequestException(
