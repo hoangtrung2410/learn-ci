@@ -89,13 +89,12 @@ export class WebhookController {
     this.logger.log(`Received GitHub webhook event: ${event}`);
 
     try {
-      // Only process workflow_run events for now
       if (event !== 'workflow_run') {
         return { message: 'Event ignored' };
       }
+      // Process only completed workflow runs
+      console.log('payload', payload);
 
-      // Extract project_id from repository or use a mapping
-      // For now, you'll need to implement project identification logic
       const projectId = await this.identifyProject(
         payload.repository?.html_url,
       );
@@ -110,6 +109,10 @@ export class WebhookController {
       );
 
       const pipeline = await this.pipelineService.create(pipelineData as any);
+
+      // Fetch workflow jobs to populate stages and logs
+      this.logger.log(`Fetching workflow jobs for pipeline ${pipeline.id}...`);
+      await this.fetchAndSaveWorkflowLogs(payload, pipeline.id, projectId);
 
       return {
         message: 'Webhook processed successfully',
@@ -239,10 +242,176 @@ export class WebhookController {
   }
 
   private async identifyProject(repositoryUrl: string): Promise<string | null> {
-    // TODO: Implement project identification logic
-    // This could query the projects table by repository URL
-    // For now, return null and require manual project_id in headers
-    this.logger.warn('Project identification not implemented');
-    return null;
+    if (!repositoryUrl) {
+      this.logger.warn('No repository URL provided');
+      return null;
+    }
+
+    this.logger.log(`🔍 Identifying project from URL: ${repositoryUrl}`);
+
+    try {
+      // Extract organization from repository URL
+      // Example: https://github.com/Web-do-an/repo-name → Web-do-an
+      const orgMatch = repositoryUrl.match(/github\.com\/([^\/]+)/);
+      if (!orgMatch) {
+        this.logger.warn(
+          `Could not parse organization from URL: ${repositoryUrl}`,
+        );
+        return null;
+      }
+
+      const orgName = orgMatch[1];
+      const orgUrl = `https://github.com/${orgName}`;
+
+      this.logger.log(`📋 Looking for project with organization: ${orgUrl}`);
+
+      // Query database for project with matching organization URL
+      const project =
+        await this.pipelineService.findProjectByOrganization(orgUrl);
+
+      if (project) {
+        this.logger.log(`✅ Found project: ${project.id} (${project.name})`);
+        return project.id;
+      }
+
+      this.logger.warn(`❌ No project found for organization: ${orgUrl}`);
+      return null;
+    } catch (error) {
+      this.logger.error(`Error identifying project: ${error.message}`);
+      return null;
+    }
+  }
+
+  private async fetchAndSaveWorkflowLogs(
+    payload: any,
+    pipelineId: string,
+    projectId: string,
+  ) {
+    try {
+      const workflowRun = payload.workflow_run;
+
+      // Get project to retrieve GitHub token
+      const project = await this.pipelineService.findProjectById(projectId);
+      if (!project || !project.token) {
+        this.logger.warn(
+          'Cannot fetch logs: No GitHub token found for project',
+        );
+        return;
+      }
+
+      // Fetch workflow jobs from GitHub API
+      const jobsUrl = workflowRun.jobs_url;
+      this.logger.log(`📥 Fetching workflow jobs from: ${jobsUrl}`);
+
+      const response = await fetch(jobsUrl, {
+        headers: {
+          Authorization: `token ${project.token.token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+
+      if (!response.ok) {
+        this.logger.error(`Failed to fetch workflow jobs: ${response.status}`);
+        return;
+      }
+
+      const jobsData = await response.json();
+      const logs = [];
+      const stages = [];
+      let failedStage = null;
+
+      // Parse jobs and create log entries + stages
+      for (const job of jobsData.jobs || []) {
+        const stageName = this.mapJobToStage(job.name);
+
+        // Build stages array
+        stages.push({
+          name: stageName,
+          job_name: job.name,
+          status: job.conclusion || job.status,
+          started_at: job.started_at,
+          completed_at: job.completed_at,
+          duration:
+            job.started_at && job.completed_at
+              ? Math.floor(
+                  (new Date(job.completed_at).getTime() -
+                    new Date(job.started_at).getTime()) /
+                    1000,
+                )
+              : null,
+        });
+
+        // Detect first failed stage
+        if (job.conclusion === 'failure' && !failedStage) {
+          failedStage = stageName;
+        }
+
+        // Add job-level log
+        logs.push({
+          pipeline_id: pipelineId,
+          stage: stageName,
+          level: job.conclusion === 'failure' ? 'error' : 'info',
+          message: `Job "${job.name}" ${job.conclusion || job.status}`,
+          metadata: {
+            job_id: job.id,
+            job_name: job.name,
+            started_at: job.started_at,
+            completed_at: job.completed_at,
+            conclusion: job.conclusion,
+            html_url: job.html_url,
+          },
+        });
+
+        // Parse steps for failed jobs
+        if (job.conclusion === 'failure' && job.steps) {
+          for (const step of job.steps) {
+            if (step.conclusion === 'failure') {
+              logs.push({
+                pipeline_id: pipelineId,
+                stage: stageName,
+                level: 'error',
+                message: `Step "${step.name}" failed`,
+                metadata: {
+                  step_number: step.number,
+                  step_name: step.name,
+                  started_at: step.started_at,
+                  completed_at: step.completed_at,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      // Update pipeline with stages and failed_stage
+      await this.pipelineService.updatePipelineStages(pipelineId, {
+        stages,
+        failed_stage: failedStage,
+      });
+      this.logger.log(
+        `✅ Updated pipeline ${pipelineId} with ${stages.length} stages`,
+      );
+
+      // Save logs to database
+      if (logs.length > 0) {
+        await this.pipelineService.createPipelineLogs(logs);
+        this.logger.log(
+          `✅ Saved ${logs.length} log entries for pipeline ${pipelineId}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Error fetching workflow logs: ${error.message}`);
+    }
+  }
+
+  private mapJobToStage(jobName: string): string {
+    const lowerName = jobName.toLowerCase();
+    if (lowerName.includes('build')) return 'build';
+    if (lowerName.includes('test')) return 'test';
+    if (lowerName.includes('deploy')) return 'deploy';
+    if (lowerName.includes('init') || lowerName.includes('setup'))
+      return 'init';
+    if (lowerName.includes('clean')) return 'cleanup';
+    return 'build'; // default
   }
 }

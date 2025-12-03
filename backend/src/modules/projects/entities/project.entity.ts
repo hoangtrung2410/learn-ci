@@ -44,6 +44,9 @@ export class ProjectEntity extends AbstractEntity {
   @Column({ type: 'timestamptz', nullable: true })
   github_webhook_created_at?: Date;
 
+  @Column({ type: 'text', nullable: true })
+  github_webhook_secret?: string;
+
   @OneToMany('PipelineEntity', 'project')
   pipelines?: any[];
 

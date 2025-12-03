@@ -7,7 +7,11 @@ import { UpdatePipelineDto } from './dto/update-pipeline.dto';
 import { QueryPipelineDto } from './dto/query-pipeline.dto';
 import { QueryPipelineLogDto } from './dto/query-pipeline-log.dto';
 import { PipelineEntity, PipelineStatus } from './entities/pipeline.entity';
-import { PipelineLogEntity, LogLevel, LogStage } from './entities/pipeline-log.entity';
+import {
+  PipelineLogEntity,
+  LogLevel,
+  LogStage,
+} from './entities/pipeline-log.entity';
 
 @Injectable()
 export class PipelineService {
@@ -17,7 +21,7 @@ export class PipelineService {
     private readonly pipelineRepository: PipelineRepository,
     private readonly pipelineLogRepository: PipelineLogRepository,
     private readonly projectRepository: ProjectRepository,
-  ) { }
+  ) {}
 
   async create(data: CreatePipelineDto): Promise<PipelineEntity> {
     this.logger.log(`Creating pipeline ${data.name}`);
@@ -371,5 +375,79 @@ export class PipelineService {
       { event: 'stage_error', timestamp: new Date() },
       error.stack,
     );
+  }
+
+  /**
+   * Find project by organization URL (for webhook matching)
+   */
+  async findProjectByOrganization(organizationUrl: string) {
+    this.logger.log(`Finding project by organization URL: ${organizationUrl}`);
+
+    try {
+      const project = await this.projectRepository.findOne({
+        where: { url_organization: organizationUrl },
+      });
+
+      return project;
+    } catch (error) {
+      this.logger.error(`Error finding project: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Find project by ID with token relation
+   */
+  async findProjectById(projectId: string) {
+    this.logger.log(`Finding project by ID: ${projectId}`);
+
+    try {
+      const project = await this.projectRepository.findOne({
+        where: { id: projectId },
+        relations: ['token'],
+      });
+
+      return project;
+    } catch (error) {
+      this.logger.error(`Error finding project by ID: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Create multiple pipeline logs
+   */
+  async createPipelineLogs(logs: any[]) {
+    this.logger.log(`Creating ${logs.length} pipeline log entries`);
+
+    try {
+      const logEntities = this.pipelineLogRepository.create(logs);
+      await this.pipelineLogRepository.save(logEntities);
+      this.logger.log(`✅ Successfully saved ${logs.length} log entries`);
+    } catch (error) {
+      this.logger.error(`Error creating pipeline logs: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update pipeline stages and failed_stage
+   */
+  async updatePipelineStages(
+    pipelineId: string,
+    data: { stages: any[]; failed_stage: string | null },
+  ) {
+    this.logger.log(`Updating stages for pipeline ${pipelineId}`);
+
+    try {
+      await this.pipelineRepository.update(pipelineId, {
+        stages: data.stages,
+        failed_stage: data.failed_stage,
+      });
+      this.logger.log(`✅ Successfully updated pipeline stages`);
+    } catch (error) {
+      this.logger.error(`Error updating pipeline stages: ${error.message}`);
+      throw error;
+    }
   }
 }

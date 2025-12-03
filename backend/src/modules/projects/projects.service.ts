@@ -20,7 +20,7 @@ export class ProjectsService {
     private readonly projectRepository: ProjectRepository,
     private readonly tokenRepository: TokenRepository,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async create(data: CreateProjectDto): Promise<ProjectEntity> {
     this.logger.log(`Creating project ${data.name}`);
@@ -37,15 +37,27 @@ export class ProjectsService {
       if (!token) {
         throw new NotFoundException(`Token with ID ${data.tokenId} not found`);
       }
+      const secret = this.generateWebhookSecret();
+      const webhookData = await this.createGitHubWebhook(
+        secret,
+        token.token,
+        data.url_organization,
+      );
 
       const project = new ProjectEntity();
       project.name = data.name;
       project.description = data.description;
       project.url_organization = data.url_organization;
       project.token_id = token.id;
+      project.github_webhook_id = webhookData.webhook.id;
+      project.github_webhook_url = webhookData.webhook.url;
+      project.github_webhook_active = webhookData.webhook.active;
+      project.github_webhook_created_at = new Date(
+        webhookData.webhook.created_at,
+      );
+      project.github_webhook_secret = secret;
 
       const createdProject = await this.projectRepository.save(project);
-      await this.createGitHubWebhook(createdProject, token.token);
 
       return createdProject;
     } catch (error) {
@@ -128,16 +140,17 @@ export class ProjectsService {
     }
   }
 
-  async createGitHubWebhook(project: ProjectEntity, token?: string) {
+  async createGitHubWebhook(
+    secret: string,
+    token?: string,
+    url_organization?: string,
+  ) {
     this.logger.log(
-      `Creating GitHub ORGANIZATION webhook for project ${project.id}`,
+      `Creating GitHub ORGANIZATION webhook for project ${token}`,
     );
 
     try {
-      const orgName = this.parseGitHubOrgUrl(project.url_organization);
-      this.logger.log(
-        `📋 Parsed organization name: "${orgName}" from URL: "${project.url_organization}"`,
-      );
+      const orgName = this.parseGitHubOrgUrl(url_organization);
 
       if (!orgName) {
         throw new BadRequestException(
@@ -159,8 +172,8 @@ export class ProjectsService {
         );
         throw new BadRequestException(
           `"${orgName}" is not a valid GitHub Organization. ` +
-          'Organization webhooks can only be created for GitHub Organizations (not personal accounts). ' +
-          'If this is a personal account, you need to specify a repository URL instead.',
+            'Organization webhooks can only be created for GitHub Organizations (not personal accounts). ' +
+            'If this is a personal account, you need to specify a repository URL instead.',
         );
       }
       const events = [
@@ -197,7 +210,7 @@ export class ProjectsService {
         if (error.message?.includes('Not Found')) {
           throw new BadRequestException(
             'Organization not found or token does not have admin:org_hook permission. ' +
-            'Make sure your token has "admin:org_hook" scope and the organization name is correct.',
+              'Make sure your token has "admin:org_hook" scope and the organization name is correct.',
           );
         }
         throw new BadRequestException(
@@ -205,12 +218,6 @@ export class ProjectsService {
         );
       }
       const webhookData = await response.json();
-      project.github_webhook_id = webhookData.id;
-      project.github_webhook_url = webhookData.config.url;
-      project.github_webhook_active = webhookData.active;
-      project.github_webhook_created_at = new Date(webhookData.created_at);
-
-      await this.projectRepository.save(project);
 
       return {
         success: true,
@@ -264,7 +271,7 @@ export class ProjectsService {
     for (let i = 0; i < 32; i++) {
       secret += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return secret;
+    return secret + Date.now();
   }
 
   async getGitHubWebhooks(projectId: string) {

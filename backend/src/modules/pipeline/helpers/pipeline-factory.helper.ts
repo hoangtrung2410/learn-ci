@@ -39,23 +39,18 @@ export class PipelineFactoryHelper {
     githubData: any,
     projectId: string,
   ): Partial<PipelineEntity> {
-    // GitHub Actions specific processor
     const workflowRun = githubData.workflow_run || githubData;
 
-    // Extract timing information from jobs
     const timingData = this.extractGitHubTiming(workflowRun);
-
-    // Determine service type from repository structure or metadata
     const serviceType = this.determineServiceType(githubData.repository);
 
-    // Calculate lead time (commit to deploy)
     const leadTime =
       workflowRun.run_started_at && workflowRun.updated_at
         ? Math.floor(
-          (new Date(workflowRun.updated_at).getTime() -
-            new Date(workflowRun.run_started_at).getTime()) /
-          1000,
-        )
+            (new Date(workflowRun.updated_at).getTime() -
+              new Date(workflowRun.run_started_at).getTime()) /
+              1000,
+          )
         : undefined;
 
     return {
@@ -95,9 +90,6 @@ export class PipelineFactoryHelper {
     testTime?: number;
     deployTime?: number;
   } {
-    // Extract timing from jobs if available
-    // This would require fetching jobs data from GitHub API
-    // For now, return undefined - can be enhanced with API calls
     return {
       buildTime: undefined,
       testTime: undefined,
@@ -106,8 +98,6 @@ export class PipelineFactoryHelper {
   }
 
   private determineServiceType(repository: any): any {
-    // Simple heuristic: check for common patterns
-    // Microservices often have service-specific names or are part of an organization
     const repoName = repository?.name?.toLowerCase() || '';
 
     if (
