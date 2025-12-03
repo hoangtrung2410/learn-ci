@@ -6,7 +6,6 @@ import {
   RecommendationPriority,
 } from '../../modules/analysis/entities/analysis.entity';
 import { ProjectEntity } from '../../modules/projects/entities/project.entity';
-import { ServiceType } from '../../modules/pipeline/entities/pipeline.entity';
 
 export default class AnalysisSeeder implements Seeder {
   public async run(dataSource: DataSource): Promise<void> {
@@ -143,7 +142,7 @@ export default class AnalysisSeeder implements Seeder {
           avg_recovery_time: 15,
         },
       },
-      recommended_architecture: ServiceType.MICROSERVICES,
+      recommended_architecture: 'microservices',
       potential_improvement_percentage: 45.5,
       recommendations: [
         {

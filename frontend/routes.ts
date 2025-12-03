@@ -13,7 +13,8 @@ export default [
 
   // Main Feature Routes
   route("home", "routers/Dashboard.tsx"),
-  route("runs", "routers/Runs.tsx"),
+  route("pipeline/:id", "routers/dashboard/PipelineDetail.tsx"),
+  route("pipeline", "routers/dashboard/Pipeline.tsx"),
   route("projects", "routers/Projects.tsx"),
 
   // Module Routes

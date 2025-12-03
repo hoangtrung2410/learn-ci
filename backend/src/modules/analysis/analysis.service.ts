@@ -6,7 +6,6 @@ import {
   AnalysisType,
   RecommendationPriority,
 } from './entities/analysis.entity';
-import { ServiceType } from '../pipeline/entities/pipeline.entity';
 
 @Injectable()
 export class AnalysisService {
@@ -15,7 +14,7 @@ export class AnalysisService {
   constructor(
     private readonly analysisRepository: AnalysisRepository,
     private readonly metricsService: MetricsService,
-  ) {}
+  ) { }
 
   /**
    * Run automated analysis for a project
@@ -62,30 +61,24 @@ export class AnalysisService {
     endDate: Date,
   ): Promise<AnalysisEntity> {
     this.logger.log('Comparing monolithic vs microservices architectures');
-
-    const comparison = await this.metricsService.compareServiceTypes(
+    const comparison = await this.metricsService.compareArchitectureTypes(
       startDate,
       endDate,
     );
 
-    const recommendations =
-      this.generateArchitectureRecommendations(comparison);
+    const recommended = this.determineRecommendedArchitecture(comparison);
+    const recommendations = this.generateArchitectureRecommendations(comparison);
 
-    // Determine recommended architecture
-    const recommendedArchitecture =
-      this.determineRecommendedArchitecture(comparison);
-
+    // Create analysis entity
     const analysis = this.analysisRepository.create({
       type: AnalysisType.ARCHITECTURE,
       title: `Architecture Comparison - ${new Date().toLocaleDateString()}`,
-      description:
-        'Comparison of Monolithic vs Microservices CI/CD performance',
-      metrics: {},
-      comparison_data: comparison,
+      description: `Automated architecture comparison for the period ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
+
+      metrics: comparison,
       recommendations,
-      recommended_architecture: recommendedArchitecture.architecture,
-      potential_improvement_percentage:
-        recommendedArchitecture.improvementPercentage,
+      recommended_architecture: recommended.architecture as AnalysisType,
+      potential_improvement_percentage: recommended.improvementPercentage,
       analysis_period_start: startDate,
       analysis_period_end: endDate,
     });
@@ -270,7 +263,7 @@ export class AnalysisService {
    * Determine recommended architecture based on metrics
    */
   private determineRecommendedArchitecture(comparison: any): {
-    architecture: ServiceType;
+    architecture: 'monolithic' | 'microservices';
     improvementPercentage: number;
   } {
     const { monolithic, microservices } = comparison;
@@ -309,11 +302,11 @@ export class AnalysisService {
 
     const architecture =
       microservicesScore > monolithicScore
-        ? ServiceType.MICROSERVICES
-        : ServiceType.MONOLITHIC;
+        ? 'microservices'
+        : 'monolithic';
 
     const improvementPercentage =
-      architecture === ServiceType.MICROSERVICES
+      architecture === 'microservices'
         ? this.calculateImprovementPercentage(monolithic, microservices)
         : this.calculateImprovementPercentage(microservices, monolithic);
 
@@ -366,7 +359,7 @@ export class AnalysisService {
     if (projectId) {
       queryBuilder.andWhere('analysis.project_id = :projectId', { projectId });
     }
-    
+
     if (type) {
       queryBuilder.andWhere('analysis.type = :type', { type });
     }

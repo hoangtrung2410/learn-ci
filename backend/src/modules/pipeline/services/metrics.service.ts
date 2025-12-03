@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PipelineRepository } from '../repositories/pipeline.repository';
-import { PipelineStatus, ServiceType } from '../entities/pipeline.entity';
+import { PipelineStatus } from '../entities/pipeline.entity';
 import { Between, In } from 'typeorm';
 import { MetricsHelper } from '../../../common';
 
@@ -23,7 +23,7 @@ export interface CICDMetrics {
 }
 
 export interface PerformanceMetrics extends DORAMetrics, CICDMetrics {
-  serviceType: ServiceType;
+  architectureKey?: string;
   projectId: string;
   period: {
     from: Date;
@@ -33,9 +33,12 @@ export interface PerformanceMetrics extends DORAMetrics, CICDMetrics {
 
 @Injectable()
 export class MetricsService {
+  compareServiceTypes(startDate: Date, endDate: Date) {
+    throw new Error('Method not implemented.');
+  }
   private readonly logger = new Logger(MetricsService.name);
 
-  constructor(private readonly pipelineRepository: PipelineRepository) {}
+  constructor(private readonly pipelineRepository: PipelineRepository) { }
 
   /**
    * Calculate DORA metrics for a project
@@ -165,26 +168,27 @@ export class MetricsService {
     projectId: string,
     startDate: Date,
     endDate: Date,
-    serviceType?: ServiceType,
+    architectureKey?: string,
   ): Promise<PerformanceMetrics> {
     const [doraMetrics, cicdMetrics] = await Promise.all([
       this.calculateDORAMetrics(projectId, startDate, endDate),
       this.calculateCICDMetrics(projectId, startDate, endDate),
     ]);
 
-    // Determine service type if not provided
-    let determinedServiceType = serviceType;
-    if (!determinedServiceType) {
+    // Determine architecture key if not provided
+    let determinedArchitectureKey = architectureKey;
+    if (!determinedArchitectureKey) {
       const pipeline = await this.pipelineRepository.findOne({
         where: { project_id: projectId },
+        relations: ['architecture'],
       });
-      determinedServiceType = pipeline?.service_type || ServiceType.MONOLITHIC;
+      determinedArchitectureKey = pipeline?.architecture?.key || 'monolithic';
     }
 
     return {
       ...doraMetrics,
       ...cicdMetrics,
-      serviceType: determinedServiceType,
+      architectureKey: determinedArchitectureKey,
       projectId,
       period: {
         from: startDate,
@@ -194,9 +198,9 @@ export class MetricsService {
   }
 
   /**
-   * Compare metrics between service types
+   * Compare metrics between architecture types
    */
-  async compareServiceTypes(
+  async compareArchitectureTypes(
     startDate: Date,
     endDate: Date,
   ): Promise<{
@@ -204,27 +208,28 @@ export class MetricsService {
     microservices: Partial<PerformanceMetrics>;
     comparison: any;
   }> {
-    this.logger.log('Comparing service types performance');
+    this.logger.log('Comparing architecture types performance');
 
-    const [monolithicPipelines, microservicesPipelines] = await Promise.all([
+    const [monolithicPipelines] = await Promise.all([
       this.pipelineRepository.find({
         where: {
-          service_type: ServiceType.MONOLITHIC,
           createdAt: Between(startDate, endDate),
         },
-      }),
-      this.pipelineRepository.find({
-        where: {
-          service_type: ServiceType.MICROSERVICES,
-          createdAt: Between(startDate, endDate),
-        },
+        relations: ['architecture'],
       }),
     ]);
 
+    const monolithicFiltered = monolithicPipelines.filter(
+      (p) => p.architecture?.key === 'monolithic',
+    );
+    const microservicesFiltered = monolithicPipelines.filter(
+      (p) => p.architecture?.key === 'microservices',
+    );
+
     const monolithicMetrics =
-      this.calculateMetricsFromPipelines(monolithicPipelines);
+      this.calculateMetricsFromPipelines(monolithicFiltered);
     const microservicesMetrics = this.calculateMetricsFromPipelines(
-      microservicesPipelines,
+      microservicesFiltered,
     );
 
     const comparison = {
@@ -250,18 +255,12 @@ export class MetricsService {
     };
 
     return {
-      monolithic: { ...monolithicMetrics, serviceType: ServiceType.MONOLITHIC },
-      microservices: {
-        ...microservicesMetrics,
-        serviceType: ServiceType.MICROSERVICES,
-      },
+      monolithic: monolithicMetrics,
+      microservices: microservicesMetrics,
       comparison,
     };
   }
 
-  /**
-   * Get performance trends over time
-   */
   async getPerformanceTrends(
     projectId: string,
     startDate: Date,

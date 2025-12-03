@@ -4,7 +4,6 @@ import {
   PipelineEntity,
   PipelineStatus,
   PipelineTrigger,
-  ServiceType,
 } from '../../modules/pipeline/entities/pipeline.entity';
 import { ProjectEntity } from '../../modules/projects/entities/project.entity';
 import { DeploymentArchitectureEntity } from '../../modules/architecture/entities/deployment-architecture.entity';
@@ -68,14 +67,6 @@ export default class PipelineSeeder implements Seeder {
         (a) => a.id === project.architecture_id,
       );
 
-      // Determine service type based on architecture
-      let serviceType = ServiceType.MONOLITHIC;
-      if (projectArchitecture?.key === 'MICROSERVICES') {
-        serviceType = ServiceType.MICROSERVICES;
-      } else if (projectArchitecture?.key === 'SERVERLESS') {
-        serviceType = ServiceType.HYBRID;
-      }
-
       // Generate 15-30 pipelines per project (last 30 days)
       const pipelineCount = Math.floor(Math.random() * 16) + 15;
 
@@ -91,11 +82,11 @@ export default class PipelineSeeder implements Seeder {
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const isSuccess = status === PipelineStatus.SUCCESS;
 
-        // Duration varies by service type
+        // Duration varies by architecture type
         let baseDuration = 300; // 5 minutes in seconds
-        if (serviceType === ServiceType.MICROSERVICES) {
+        if (projectArchitecture?.key === 'microservices') {
           baseDuration = 180; // 3 minutes
-        } else if (serviceType === ServiceType.HYBRID) {
+        } else if (projectArchitecture?.key === 'serverless') {
           baseDuration = 120; // 2 minutes
         }
 
@@ -118,7 +109,7 @@ export default class PipelineSeeder implements Seeder {
               : i % 7 === 0
                 ? PipelineTrigger.SCHEDULE
                 : PipelineTrigger.PUSH,
-          service_type: serviceType,
+          service_type: projectArchitecture?.key || 'monolithic',
           branch: branches[Math.floor(Math.random() * branches.length)],
           commit_sha: Math.random().toString(36).substring(2, 10),
           commit_message:

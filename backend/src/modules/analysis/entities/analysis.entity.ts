@@ -8,7 +8,6 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { ProjectEntity } from '../../projects/entities/project.entity';
-import { ServiceType } from '../../pipeline/entities/pipeline.entity';
 
 export enum AnalysisType {
   PERFORMANCE = 'performance',
@@ -58,11 +57,11 @@ export class AnalysisEntity {
   }>;
 
   @Column({
-    type: 'enum',
-    enum: ServiceType,
+    type: 'varchar',
+    length: 50,
     nullable: true,
   })
-  recommended_architecture?: ServiceType;
+  recommended_architecture?: string;
 
   @Column({ type: 'float', nullable: true })
   potential_improvement_percentage?: number;

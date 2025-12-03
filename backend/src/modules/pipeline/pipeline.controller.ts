@@ -30,7 +30,7 @@ import { PipelineStatus } from './entities/pipeline.entity';
 @ApiBearerAuth()
 @Controller('pipelines')
 export class PipelineController {
-  constructor(private readonly pipelineService: PipelineService) {}
+  constructor(private readonly pipelineService: PipelineService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -154,5 +154,47 @@ export class PipelineController {
   @ApiResponse({ status: 404, description: 'Pipeline not found' })
   async delete(@Param('id', ParseUUIDPipe) id: string) {
     await this.pipelineService.delete(id);
+  }
+
+  @Get(':id/logs')
+  @ApiOperation({
+    summary: 'Get pipeline logs',
+    description: 'Get all logs for a specific pipeline, optionally filtered by stage or level',
+  })
+  @ApiParam({ name: 'id', description: 'Pipeline UUID' })
+  @ApiQuery({ name: 'stage', required: false, description: 'Filter by stage' })
+  @ApiQuery({ name: 'level', required: false, description: 'Filter by log level' })
+  @ApiResponse({ status: 200, description: 'Logs retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Pipeline not found' })
+  async getLogs(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('stage') stage?: string,
+    @Query('level') level?: string,
+  ) {
+    return this.pipelineService.getPipelineLogs(id, { stage, level } as any);
+  }
+
+  @Get(':id/logs/errors')
+  @ApiOperation({
+    summary: 'Get pipeline error logs',
+    description: 'Get all error-level logs for a specific pipeline',
+  })
+  @ApiParam({ name: 'id', description: 'Pipeline UUID' })
+  @ApiResponse({ status: 200, description: 'Error logs retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Pipeline not found' })
+  async getErrorLogs(@Param('id', ParseUUIDPipe) id: string) {
+    return this.pipelineService.getErrorLogs(id);
+  }
+
+  @Get(':id/with-logs')
+  @ApiOperation({
+    summary: 'Get pipeline with logs',
+    description: 'Get pipeline details including all associated logs',
+  })
+  @ApiParam({ name: 'id', description: 'Pipeline UUID' })
+  @ApiResponse({ status: 200, description: 'Pipeline with logs retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Pipeline not found' })
+  async getPipelineWithLogs(@Param('id', ParseUUIDPipe) id: string) {
+    return this.pipelineService.getPipelineWithLogs(id);
   }
 }

@@ -1,10 +1,13 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PipelineRepository } from './repositories/pipeline.repository';
+import { PipelineLogRepository } from './repositories/pipeline-log.repository';
 import { ProjectRepository } from '../projects/repositories/project.repository';
 import { CreatePipelineDto } from './dto/create-pipeline.dto';
 import { UpdatePipelineDto } from './dto/update-pipeline.dto';
 import { QueryPipelineDto } from './dto/query-pipeline.dto';
+import { QueryPipelineLogDto } from './dto/query-pipeline-log.dto';
 import { PipelineEntity, PipelineStatus } from './entities/pipeline.entity';
+import { PipelineLogEntity, LogLevel, LogStage } from './entities/pipeline-log.entity';
 
 @Injectable()
 export class PipelineService {
@@ -12,8 +15,9 @@ export class PipelineService {
 
   constructor(
     private readonly pipelineRepository: PipelineRepository,
+    private readonly pipelineLogRepository: PipelineLogRepository,
     private readonly projectRepository: ProjectRepository,
-  ) {}
+  ) { }
 
   async create(data: CreatePipelineDto): Promise<PipelineEntity> {
     this.logger.log(`Creating pipeline ${data.name}`);
@@ -33,7 +37,6 @@ export class PipelineService {
       pipeline.name = data.name;
       pipeline.status = data.status;
       pipeline.trigger = data.trigger;
-      pipeline.service_type = data.service_type as any;
       pipeline.branch = data.branch;
       pipeline.commit_sha = data.commit_sha;
       pipeline.commit_message = data.commit_message;
@@ -124,7 +127,7 @@ export class PipelineService {
     this.logger.log(`Getting pipeline ${id}`);
     const pipeline = await this.pipelineRepository.findOne({
       where: { id },
-      relations: ['project'],
+      relations: ['project', 'logs'],
     });
 
     if (!pipeline) {
@@ -253,5 +256,120 @@ export class PipelineService {
       this.logger.error(error?.stack);
       throw error;
     }
+  }
+
+  // Pipeline Log Methods
+  async addLog(
+    pipelineId: string,
+    stage: LogStage,
+    message: string,
+    level: LogLevel = LogLevel.INFO,
+    metadata?: any,
+    stackTrace?: string,
+  ): Promise<PipelineLogEntity> {
+    this.logger.log(`Adding log to pipeline ${pipelineId} - Stage: ${stage}`);
+
+    // Verify pipeline exists
+    await this.getDetail(pipelineId);
+
+    return this.pipelineLogRepository.addLog(
+      pipelineId,
+      stage,
+      message,
+      level,
+      metadata,
+      stackTrace,
+    );
+  }
+
+  async getPipelineLogs(
+    pipelineId: string,
+    query?: QueryPipelineLogDto,
+  ): Promise<PipelineLogEntity[]> {
+    this.logger.log(`Getting logs for pipeline ${pipelineId}`);
+
+    // Verify pipeline exists
+    await this.getDetail(pipelineId);
+
+    if (query?.stage) {
+      return this.pipelineLogRepository.findByPipelineIdAndStage(
+        pipelineId,
+        query.stage,
+      );
+    }
+
+    return this.pipelineLogRepository.findByPipelineId(pipelineId);
+  }
+
+  async getErrorLogs(pipelineId: string): Promise<PipelineLogEntity[]> {
+    this.logger.log(`Getting error logs for pipeline ${pipelineId}`);
+
+    // Verify pipeline exists
+    await this.getDetail(pipelineId);
+
+    return this.pipelineLogRepository.findErrorLogs(pipelineId);
+  }
+
+  async getPipelineWithLogs(id: string): Promise<PipelineEntity> {
+    this.logger.log(`Getting pipeline ${id} with logs`);
+
+    const pipeline = await this.pipelineRepository.findOne({
+      where: { id },
+      relations: ['project', 'architecture', 'logs'],
+    });
+
+    if (!pipeline) {
+      throw new NotFoundException(`Pipeline with ID ${id} not found`);
+    }
+
+    return pipeline;
+  }
+
+  async logStageStart(
+    pipelineId: string,
+    stage: LogStage,
+  ): Promise<PipelineLogEntity> {
+    return this.addLog(
+      pipelineId,
+      stage,
+      `${stage.toUpperCase()} stage started`,
+      LogLevel.INFO,
+      { event: 'stage_start', timestamp: new Date() },
+    );
+  }
+
+  async logStageComplete(
+    pipelineId: string,
+    stage: LogStage,
+    duration: number,
+  ): Promise<PipelineLogEntity> {
+    return this.addLog(
+      pipelineId,
+      stage,
+      `${stage.toUpperCase()} stage completed in ${duration}s`,
+      LogLevel.INFO,
+      { event: 'stage_complete', duration, timestamp: new Date() },
+    );
+  }
+
+  async logStageError(
+    pipelineId: string,
+    stage: LogStage,
+    error: Error,
+  ): Promise<PipelineLogEntity> {
+    // Update pipeline failed_stage
+    const pipeline = await this.getDetail(pipelineId);
+    pipeline.failed_stage = stage;
+    pipeline.error_message = error.message;
+    await this.pipelineRepository.save(pipeline);
+
+    return this.addLog(
+      pipelineId,
+      stage,
+      `${stage.toUpperCase()} stage failed: ${error.message}`,
+      LogLevel.ERROR,
+      { event: 'stage_error', timestamp: new Date() },
+      error.stack,
+    );
   }
 }

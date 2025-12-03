@@ -12,7 +12,7 @@ import {
 import { ExternalLink, Shield } from "lucide-react";
 import MetricsCard from "../../components/MetricsCard";
 import DoraMetrics from "../../components/DoraMetrics";
-import RunTable from "../../components/RunTable";
+import RunTable from "../../components/PipelineTable";
 import { Run, Status } from "../../types/types";
 import {
   pipelineService,

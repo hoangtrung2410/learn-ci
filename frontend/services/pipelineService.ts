@@ -53,9 +53,7 @@ export interface PipelineStatistics {
 }
 
 export const pipelineService = {
-  /**
-   * Get list of pipelines with pagination and filters
-   */
+
   getList: async (
     params?: PaginationDto & { project_id?: string; status?: PipelineStatus }
   ) => {
@@ -69,9 +67,19 @@ export const pipelineService = {
     }
   },
 
-  /**
-   * Get pipeline statistics
-   */
+  analyzeError: async (errorMessage: string): Promise<string> => {
+    try {
+      const resp = await axiosInstance.post("/pipelines/analyze-error", {
+        error_message: errorMessage,
+      });
+      return resp.data?.data?.analysis ?? resp.data?.analysis;
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || "Failed to analyze error message";
+      throw new Error(message);
+    }
+  },
+
   getStatistics: async (projectId?: string): Promise<PipelineStatistics> => {
     try {
       const params = projectId ? { project_id: projectId } : {};
@@ -84,9 +92,6 @@ export const pipelineService = {
     }
   },
 
-  /**
-   * Get pipeline by ID
-   */
   getDetail: async (id: string): Promise<Pipeline> => {
     try {
       const resp = await axiosInstance.get(`/pipelines/${id}`);
@@ -97,9 +102,6 @@ export const pipelineService = {
     }
   },
 
-  /**
-   * Create a new pipeline
-   */
   create: async (data: CreatePipelineDto): Promise<Pipeline> => {
     try {
       const resp = await axiosInstance.post("/pipelines", data);
@@ -111,9 +113,7 @@ export const pipelineService = {
     }
   },
 
-  /**
-   * Update a pipeline
-   */
+
   update: async (id: string, data: UpdatePipelineDto): Promise<Pipeline> => {
     try {
       const resp = await axiosInstance.put(`/pipelines/${id}`, data);
@@ -125,9 +125,7 @@ export const pipelineService = {
     }
   },
 
-  /**
-   * Update pipeline status
-   */
+
   updateStatus: async (
     id: string,
     status: PipelineStatus,
@@ -145,9 +143,6 @@ export const pipelineService = {
     }
   },
 
-  /**
-   * Delete a pipeline
-   */
   delete: async (id: string): Promise<void> => {
     try {
       await axiosInstance.delete(`/pipelines/${id}`);

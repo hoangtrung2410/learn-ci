@@ -6,9 +6,12 @@ import {
   Entity,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { ProjectEntity } from '../../projects/entities/project.entity';
 import { DeploymentArchitectureEntity } from '../../architecture/entities/deployment-architecture.entity';
+import { AbstractEntity } from 'src/database/abstract/abstract.entity';
+import { PipelineLogEntity } from './pipeline-log.entity';
 
 export enum PipelineStatus {
   PENDING = 'pending',
@@ -27,16 +30,8 @@ export enum PipelineTrigger {
   TAG = 'tag',
 }
 
-export enum ServiceType {
-  MONOLITHIC = 'monolithic',
-  MICROSERVICES = 'microservices',
-  HYBRID = 'hybrid',
-}
-
 @Entity({ name: 'pipelines' })
-export class PipelineEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+export class PipelineEntity extends AbstractEntity {
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
@@ -54,13 +49,6 @@ export class PipelineEntity {
     default: PipelineTrigger.PUSH,
   })
   trigger: PipelineTrigger;
-
-  @Column({
-    type: 'enum',
-    enum: ServiceType,
-    default: ServiceType.MONOLITHIC,
-  })
-  service_type: ServiceType;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   branch?: string;
@@ -92,7 +80,6 @@ export class PipelineEntity {
   @Column({ type: 'integer', nullable: true })
   duration?: number;
 
-  // Performance metrics (in seconds)
   @Column({ type: 'integer', nullable: true })
   build_time?: number;
 
@@ -108,9 +95,8 @@ export class PipelineEntity {
   @Column({ type: 'integer', nullable: true })
   artifact_size_mb?: number;
 
-  // DORA metrics
   @Column({ type: 'integer', nullable: true })
-  lead_time?: number; // Time from commit to deploy (seconds)
+  lead_time?: number;
 
   @Column({ type: 'boolean', default: false })
   is_failed_deployment: boolean;
@@ -124,11 +110,8 @@ export class PipelineEntity {
   @Column({ type: 'text', nullable: true })
   error_message?: string;
 
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz' })
-  updatedAt: Date;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  failed_stage?: string;
 
   @ManyToOne(() => ProjectEntity, { nullable: false })
   @JoinColumn({ name: 'project_id' })
@@ -137,7 +120,6 @@ export class PipelineEntity {
   @Column({ type: 'uuid' })
   project_id: string;
 
-  // Relationship with deployment architecture
   @ManyToOne(
     () => DeploymentArchitectureEntity,
     (architecture) => architecture.pipelines,
@@ -148,4 +130,9 @@ export class PipelineEntity {
 
   @Column({ type: 'uuid', nullable: true })
   architecture_id?: string;
+
+  @OneToMany(() => PipelineLogEntity, (log) => log.pipeline, {
+    cascade: true,
+  })
+  logs: PipelineLogEntity[];
 }

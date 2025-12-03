@@ -4,12 +4,12 @@ import { Search, Bell, Play, Plus } from "lucide-react";
 
 // Components
 import Sidebar from "./components/Sidebar";
-import RunDetailsPanel from "./components/RunDetailsPanel";
 import { AuthProvider, useAuth } from "./components/auth/AuthContext";
 
 // Routers (Pages)
 import Dashboard from "./routers/dashboard/Dashboard";
-import Runs from "./routers/dashboard/Runs";
+import Runs from "./routers/pipeline/Pipeline";
+import PipelineDetail from "./routers/pipeline/PipelineDetail";
 import Settings from "./routers/settings/Settings";
 import LoginView from "./routers/auth/LoginView";
 import Security from "./routers/tokens/Security";
@@ -110,6 +110,11 @@ const AuthenticatedApp: React.FC = () => {
 
   // --- Route Renderer ---
   const renderContent = () => {
+    // Check for dynamic pipeline detail route: /pipeline/:id
+    if (activePage.startsWith("pipeline/")) {
+      return <PipelineDetail />;
+    }
+
     switch (activePage) {
       case "dashboard":
         return (
@@ -121,7 +126,7 @@ const AuthenticatedApp: React.FC = () => {
         );
       case "projects":
         return <Projects />;
-      case "runs":
+      case "pipeline":
         return (
           <Runs
             runs={runs}
@@ -231,11 +236,7 @@ const AuthenticatedApp: React.FC = () => {
       </main>
 
       {/* Pipeline Deep Dive Panel (Replacing Copilot Panel) */}
-      <RunDetailsPanel
-        isOpen={isPanelOpen}
-        onClose={() => setIsPanelOpen(false)}
-        run={selectedRun}
-      />
+
     </div>
   );
 };

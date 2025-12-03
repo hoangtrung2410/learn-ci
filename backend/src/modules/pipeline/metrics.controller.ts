@@ -8,13 +8,12 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { MetricsService } from './services/metrics.service';
-import { ServiceType } from './entities/pipeline.entity';
 
 @ApiTags('Metrics')
 @ApiBearerAuth()
 @Controller('metrics')
 export class MetricsController {
-  constructor(private readonly metricsService: MetricsService) {}
+  constructor(private readonly metricsService: MetricsService) { }
 
   @Get('dora/:projectId')
   @ApiOperation({
@@ -146,7 +145,14 @@ export class MetricsController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
-    @Query('service_type') serviceType?: ServiceType,
+    @Query('service_type') serviceType?:
+      | 'FRONTEND'
+      | 'BACKEND'
+      | 'DATABASE'
+      | 'CACHE'
+      | 'MESSAGE_QUEUE'
+      | 'API_GATEWAY'
+      | 'MONITORING',
   ) {
     const start = startDate ? new Date(startDate) : this.getDefaultStartDate();
     const end = endDate ? new Date(endDate) : new Date();

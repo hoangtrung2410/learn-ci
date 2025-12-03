@@ -25,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
 
   const menuItems = [
     { id: "dashboard", label: "Overview", icon: LayoutGrid },
-    { id: "runs", label: "Workflow Runs", icon: Activity },
+    { id: "pipeline", label: "Workflow Runs", icon: Activity },
     // { id: "insights", label: "Insights", icon: PieChart },
     // { id: "optimizer", label: "System Optimizer", icon: Cpu },
     // { id: "branches", label: "Branches", icon: GitBranch },

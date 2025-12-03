@@ -52,10 +52,10 @@ export class PipelineFactoryHelper {
     const leadTime =
       workflowRun.run_started_at && workflowRun.updated_at
         ? Math.floor(
-            (new Date(workflowRun.updated_at).getTime() -
-              new Date(workflowRun.run_started_at).getTime()) /
-              1000,
-          )
+          (new Date(workflowRun.updated_at).getTime() -
+            new Date(workflowRun.run_started_at).getTime()) /
+          1000,
+        )
         : undefined;
 
     return {
@@ -78,7 +78,6 @@ export class PipelineFactoryHelper {
       test_time: timingData.testTime,
       deploy_time: timingData.deployTime,
       lead_time: leadTime,
-      service_type: serviceType,
       is_failed_deployment: workflowRun.conclusion === 'failure',
       metadata: {
         workflow_id: workflowRun.workflow_id,
