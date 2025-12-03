@@ -9,12 +9,10 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { TokenEntity } from '../../token/entities/token.entity';
+import { AbstractEntity } from 'src/database/abstract/abstract.entity';
 
 @Entity({ name: 'projects' })
-export class ProjectEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class ProjectEntity extends AbstractEntity {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
@@ -24,17 +22,8 @@ export class ProjectEntity {
   @Column({ type: 'text', nullable: true })
   url_organization?: string;
 
-  /**
-   * Deployment architecture type for this project
-   */
   @Column({ type: 'uuid', nullable: true })
   architecture_id?: string;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz' })
-  updatedAt: Date;
 
   // Many projects can use one token
   @ManyToOne(() => TokenEntity, (token) => token.projects, { nullable: true })
@@ -44,20 +33,34 @@ export class ProjectEntity {
   @Column({ type: 'uuid', nullable: true })
   token_id?: string;
 
-  // One project has many pipelines
+  @Column({ nullable: true })
+  github_webhook_id?: number;
+
+  @Column({ type: 'text', nullable: true })
+  github_webhook_url?: string;
+
+  // @Column({ type: 'text', nullable: true })
+  // github_webhook_secret?: string;
+
+  // @Column({ type: 'text', nullable: true })
+  // github_webhook_events?: string;
+
+  @Column({ type: 'boolean', default: false })
+  github_webhook_active?: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  github_webhook_created_at?: Date;
+
   @OneToMany('PipelineEntity', 'project')
   pipelines?: any[];
 
-  // One project has many analyses
   @OneToMany('AnalysisEntity', 'project')
   analyses?: any[];
 
-  // Project belongs to a deployment architecture
   @ManyToOne('DeploymentArchitectureEntity', 'projects', { nullable: true })
   @JoinColumn({ name: 'architecture_id' })
   architecture?: any;
 
-  // Project can create custom templates
   @OneToMany('PipelineTemplateEntity', 'created_by_project')
   templates?: any[];
 }

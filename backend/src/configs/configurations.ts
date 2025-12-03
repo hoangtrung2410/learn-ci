@@ -11,6 +11,7 @@ export default (): IConfiguration => ({
   app: {
     appName: process.env.APP_NAME,
     port: parseInt(process.env.APP_PORT) || 3000,
+    url: process.env.APP_URL || 'http://localhost:3000',
     cors: {
       origin: process.env.CORS_ORIGIN,
       methods: process.env.CORS_METHODS,

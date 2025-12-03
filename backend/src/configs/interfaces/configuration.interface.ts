@@ -19,6 +19,7 @@ export interface IConfiguration {
   app: {
     appName: string;
     port: number;
+    url: string;
     cors: CorsOptions | CorsOptionsDelegate<any>;
   };
   frontend: {
