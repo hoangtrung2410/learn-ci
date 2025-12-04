@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: alert-ci
+      POSTGRES_PASSWORD: "alert-ci123"
+      POSTGRES_DB: alert-ci
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - alert-ci-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alert-ci -d alert-ci"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: alert-ci-backend
+    restart: unless-stopped
+    ports:
+      - "3456:3456"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - alert-ci-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3456/api/v1/health-checker || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./backend/logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    container_name: alert-ci-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3456
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - alert-ci-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  alert-ci-network:
+    driver: bridge

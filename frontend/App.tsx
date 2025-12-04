@@ -139,8 +139,6 @@ const AuthenticatedApp: React.FC = () => {
         return <Security />;
       case "insights":
         return <Insights />;
-      case "optimizer":
-        return <Optimizer />;
       case "branches":
         return (
           <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
