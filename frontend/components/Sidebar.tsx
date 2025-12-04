@@ -26,9 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
   const menuItems = [
     { id: "dashboard", label: "Overview", icon: LayoutGrid },
     { id: "pipeline", label: "Workflow Runs", icon: Activity },
-    // { id: "insights", label: "Insights", icon: PieChart },
-    // { id: "optimizer", label: "System Optimizer", icon: Cpu },
-    // { id: "branches", label: "Branches", icon: GitBranch },
+    { id: "insights", label: "Insights", icon: PieChart },
     { id: "projects", label: "Projects", icon: FolderGit },
     { id: "security", label: "Security", icon: ShieldAlert },
     { id: "settings", label: "Settings", icon: Settings },
@@ -49,10 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       </div>
 
       {/* Organization Switcher Context */}
-      <div className="px-4 py-4">
-
-      </div>
-
+      <div className="px-4 py-4"></div>
 
       <nav className="flex-1 px-2 space-y-0.5">
         {menuItems.map((item) => {
@@ -67,12 +62,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
                 const path = item.id === "dashboard" ? "/home" : `/${item.id}`;
                 try {
                   navigate(path);
-                } catch (_) { }
+                } catch (_) {}
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 group relative ${isActive
-                ? "bg-surfaceHighlight text-white"
-                : "text-slate-400 hover:text-slate-200 hover:bg-surfaceHighlight/50"
-                }`}
+              className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 group relative ${
+                isActive
+                  ? "bg-surfaceHighlight text-white"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-surfaceHighlight/50"
+              }`}
             >
               <Icon
                 size={18}

@@ -14,7 +14,6 @@ import Settings from "./routers/settings/Settings";
 import LoginView from "./routers/auth/LoginView";
 import Security from "./routers/tokens/Security";
 import Insights from "./routers/dashboard/Insights";
-import Optimizer from "./routers/dashboard/Optimizer";
 import Projects from "./routers/projects/Projects";
 
 import { MOCK_RUNS } from "./constants";
@@ -173,7 +172,7 @@ const AuthenticatedApp: React.FC = () => {
       const p = location.pathname || "/";
       if (p === "/" || p === "/home") setActivePage("dashboard");
       else setActivePage(p.replace(/^\//, ""));
-    } catch (_) { }
+    } catch (_) {}
   }, [location.pathname]);
 
   return (
@@ -236,7 +235,6 @@ const AuthenticatedApp: React.FC = () => {
       </main>
 
       {/* Pipeline Deep Dive Panel (Replacing Copilot Panel) */}
-
     </div>
   );
 };
