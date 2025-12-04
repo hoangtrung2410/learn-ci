@@ -12,6 +12,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { PipelineModule } from './modules/pipeline/pipeline.module';
 import { AnalysisModule } from './modules/analysis/analysis.module';
 import { ArchitectureModule } from './modules/architecture/architecture.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ArchitectureModule } from './modules/architecture/architecture.module';
     PipelineModule,
     AnalysisModule,
     ArchitectureModule,
+    AiModule,
     HealthCheckerModule,
   ],
   providers: [
@@ -43,4 +45,4 @@ import { ArchitectureModule } from './modules/architecture/architecture.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -15,19 +15,19 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { ArchitectureService } from '../services/architecture.service';
+import { ArchitectureService } from './architecture.service';
 import {
   CreateDeploymentArchitectureDto,
   UpdateDeploymentArchitectureDto,
-} from '../dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+} from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Architectures')
 @ApiBearerAuth()
 // @UseGuards(JwtAuthGuard) // Tạm comment để test Swagger
 @Controller('architectures')
 export class ArchitectureController {
-  constructor(private readonly architectureService: ArchitectureService) {}
+  constructor(private readonly architectureService: ArchitectureService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new deployment architecture' })

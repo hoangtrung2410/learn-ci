@@ -37,11 +37,6 @@ export class DeploymentArchitectureEntity extends AbstractEntity {
     maintenance?: 'low' | 'medium' | 'high';
   };
 
-  @OneToMany('ArchitectureComponentEntity', 'architecture')
-  components?: any[];
-
-  @OneToMany('ArchitectureTemplateMapEntity', 'architecture')
-  templateMaps?: any[];
 
   @OneToMany('ProjectEntity', 'architecture')
   projects?: any[];

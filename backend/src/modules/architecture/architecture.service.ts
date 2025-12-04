@@ -3,18 +3,18 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { DeploymentArchitectureRepository } from '../repositories/deployment-architecture.repository';
+import { DeploymentArchitectureRepository } from './repositories/deployment-architecture.repository';
 import {
   CreateDeploymentArchitectureDto,
   UpdateDeploymentArchitectureDto,
-} from '../dto';
-import { DeploymentArchitectureEntity } from '../entities';
+} from './dto';
+import { DeploymentArchitectureEntity } from './entities';
 
 @Injectable()
 export class ArchitectureService {
   constructor(
     private readonly architectureRepository: DeploymentArchitectureRepository,
-  ) {}
+  ) { }
 
   async create(
     dto: CreateDeploymentArchitectureDto,
@@ -123,17 +123,23 @@ export class ArchitectureService {
   }> {
     const architecture = await this.architectureRepository.findOne({
       where: { id },
-      relations: ['projects', 'components', 'templateMappings'],
+      relations: ['projects'],
     });
 
     if (!architecture) {
       throw new NotFoundException(`Architecture with ID '${id}' not found`);
     }
 
+    const total_projects = architecture.projects ? architecture.projects.length : 0;
+
+    // For simplicity, assuming components and templates are not implemented yet
+    const total_components = 0;
+    const total_templates = 0;
+
     return {
-      total_projects: architecture.projects?.length || 0,
-      total_components: architecture.components?.length || 0,
-      total_templates: architecture.templateMaps?.length || 0,
+      total_projects,
+      total_components,
+      total_templates,
     };
   }
 }

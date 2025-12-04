@@ -41,10 +41,10 @@ export class AnalysisEntity {
   description?: string;
 
   @Column({ type: 'jsonb' })
-  metrics: any; // Stored DORA + CI/CD metrics
+  metrics: any;
 
   @Column({ type: 'jsonb' })
-  comparison_data?: any; // Monolithic vs Microservices comparison
+  comparison_data?: any;
 
   @Column({ type: 'jsonb' })
   recommendations: Array<{
